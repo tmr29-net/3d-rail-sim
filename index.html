@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>3D Rail Sim v1</title>
+    <title>3D Rail Sim - Real Piers</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: sans-serif; touch-action: none; background: #1a1a1a; }
         #ui { position: absolute; top: 10px; left: 10px; display: flex; flex-wrap: wrap; gap: 5px; z-index: 10; width: 250px; max-height: 95vh; overflow-y: auto; padding-right: 5px; }
@@ -169,11 +169,39 @@
             dirLight.position.set(10, 20, 10);
             scene.add(dirLight);
             
-            // 橋脚グループの準備
+            // --- 橋脚（ブロック橋脚）モデルの作成 ---
             pierGroup = new THREE.Group();
             scene.add(pierGroup);
-            pierGeo = new THREE.BoxGeometry(W * 1.5, H_UNIT, 2.5);
-            pierGeo.translate(0, H_UNIT/2, 0); // 底面を原点に
+
+            const pierShape = new THREE.Shape();
+            const pw = 1.7;  // 橋脚の全幅の半分 (下が空洞になるよう広めに)
+            const ph = H_UNIT; // 高さ
+            const th = 0.4;  // 左右の柱の太さ
+            const topTh = 0.5; // 上部のレールを支える梁の太さ
+
+            // 逆U字型（門の形）のパスを描画
+            pierShape.moveTo(-pw, 0);
+            pierShape.lineTo(-pw, ph);
+            pierShape.lineTo(pw, ph);
+            pierShape.lineTo(pw, 0);
+            pierShape.lineTo(pw - th, 0);
+            pierShape.lineTo(pw - th, ph - topTh);
+            pierShape.lineTo(-pw + th, ph - topTh);
+            pierShape.lineTo(-pw + th, 0);
+            pierShape.closePath();
+
+            // 奥行きを持たせて立体化
+            pierGeo = new THREE.ExtrudeGeometry(pierShape, { 
+                depth: 1.8, 
+                bevelEnabled: true, 
+                bevelSegments: 2, 
+                steps: 1, 
+                bevelSize: 0.05, 
+                bevelThickness: 0.05 
+            });
+            // Z軸の中央を原点に合わせる
+            pierGeo.translate(0, 0, -0.9);
+            
             pierEdges = new THREE.EdgesGeometry(pierGeo);
             pierEdgeMat = new THREE.LineBasicMaterial({ color: 0xb89a00 });
 
@@ -288,7 +316,7 @@
                 const maxLevel = Math.round(spot.maxY / H_UNIT);
                 for (let i = 0; i < maxLevel; i++) {
                     const mesh = new THREE.Mesh(pierGeo, matYellow);
-                    mesh.position.set(spot.x, i * H_UNIT, spot.z);
+                    mesh.position.set(spot.x, i * H_UNIT, spot.z); // ExtrudeはY=0から始まるためそのまま積める
                     mesh.rotation.y = spot.rotY;
                     const edges = new THREE.LineSegments(pierEdges, pierEdgeMat);
                     mesh.add(edges);
