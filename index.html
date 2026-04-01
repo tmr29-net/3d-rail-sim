@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>3D Rail Sim - Slope Curves & Mini Piers</title>
+    <title>3D Rail Sim - Real Slope Curves & Mini Piers</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: sans-serif; touch-action: none; background: #1a1a1a; }
         #ui { position: absolute; top: 10px; left: 10px; display: flex; flex-wrap: wrap; gap: 5px; z-index: 10; width: 250px; max-height: 95vh; overflow-y: auto; padding-right: 5px; }
@@ -45,12 +45,8 @@
             <button onclick="addRail('slope_down')" style="background:#ffb300; color:#000;">直線坂 (下り)</button>
         </div>
         <div class="flex-row">
-            <button onclick="addRail('slope_curve_right_up')" style="background:#FF9800; color:#000;">坂曲線 (右・上)</button>
-            <button onclick="addRail('slope_curve_right_down')" style="background:#FF9800; color:#000;">坂曲線 (右・下)</button>
-        </div>
-        <div class="flex-row">
-            <button onclick="addRail('slope_curve_left_up')" style="background:#FF9800; color:#000;">坂曲線 (左・上)</button>
-            <button onclick="addRail('slope_curve_left_down')" style="background:#FF9800; color:#000;">坂曲線 (左・下)</button>
+            <button onclick="addRail('slope_curve_A')" style="background:#FF9800; color:#000;">坂曲線A (下凹/左上)</button>
+            <button onclick="addRail('slope_curve_B')" style="background:#FF9800; color:#000;">坂曲線B (下凸/右上)</button>
         </div>
 
         <div class="divider"></div>
@@ -265,7 +261,7 @@
             });
         }
 
-        // --- 高さ変更機能 (1 または 1/4 単位) ---
+        // --- 高さ変更機能 ---
         window.changeHeight = (delta) => {
             if (!selectedObject) return showMessage("レールを選択してください。");
             if (isConnected(selectedObject)) return showMessage("接続中は高さを変更できません。");
@@ -278,7 +274,7 @@
             updatePiers();
         };
 
-        // --- 橋脚マネージャー (1/4単位対応) ---
+        // --- 橋脚マネージャー ---
         function updatePiers() {
             pierGroup.clear();
             const spots = [];
@@ -306,12 +302,12 @@
                 
                 let currentY = 0;
                 
-                // 1/4橋脚（レール色）を下から積む
+                // 1/4橋脚（今回はすべて黄色）を下から積む
                 for (let i = 0; i < numQuarter; i++) {
-                    const mesh = new THREE.Mesh(miniPierGeo, matNormal);
+                    const mesh = new THREE.Mesh(miniPierGeo, matYellow);
                     mesh.position.set(spot.x, currentY, spot.z);
                     mesh.rotation.y = spot.rotY;
-                    const edges = new THREE.LineSegments(miniPierEdges, edgeMatNormal);
+                    const edges = new THREE.LineSegments(miniPierEdges, pierEdgeMat);
                     mesh.add(edges);
                     pierGroup.add(mesh);
                     currentY += (H_UNIT / 4);
@@ -351,14 +347,8 @@
             else if (type === 'slope_down_flip') { addJoint(0, 0,H_UNIT,0, 0,0,-1, 'M'); addJoint(1, 0,0,2*L, 0,0,1, 'F'); }
 
             // 坂曲線
-            else if (type === 'slope_curve_right_up') { addJoint(0, ...p0, 'F'); addJoint(1, pCR[0], H_Q, pCR[2], pCR[3], pCR[4], pCR[5], 'M'); }
-            else if (type === 'slope_curve_right_down') { addJoint(0, p0[0], H_Q, p0[2], p0[3], p0[4], p0[5], 'F'); addJoint(1, ...pCR, 'M'); }
-            else if (type === 'slope_curve_right_up_flip') { addJoint(0, ...p0, 'M'); addJoint(1, pCR[0], H_Q, pCR[2], pCR[3], pCR[4], pCR[5], 'F'); }
-            else if (type === 'slope_curve_right_down_flip') { addJoint(0, p0[0], H_Q, p0[2], p0[3], p0[4], p0[5], 'M'); addJoint(1, ...pCR, 'F'); }
-            else if (type === 'slope_curve_left_up') { addJoint(0, ...p0, 'F'); addJoint(1, pCL[0], H_Q, pCL[2], pCL[3], pCL[4], pCL[5], 'M'); }
-            else if (type === 'slope_curve_left_down') { addJoint(0, p0[0], H_Q, p0[2], p0[3], p0[4], p0[5], 'F'); addJoint(1, ...pCL, 'M'); }
-            else if (type === 'slope_curve_left_up_flip') { addJoint(0, ...p0, 'M'); addJoint(1, pCL[0], H_Q, pCL[2], pCL[3], pCL[4], pCL[5], 'F'); }
-            else if (type === 'slope_curve_left_down_flip') { addJoint(0, p0[0], H_Q, p0[2], p0[3], p0[4], p0[5], 'M'); addJoint(1, ...pCL, 'F'); }
+            else if (type === 'slope_curve_A') { addJoint(0, ...p0, 'F'); addJoint(1, pCL[0], H_Q, pCL[2], pCL[3], pCL[4], pCL[5], 'M'); }
+            else if (type === 'slope_curve_B') { addJoint(0, ...p0, 'M'); addJoint(1, pCR[0], H_Q, pCR[2], pCR[3], pCR[4], pCR[5], 'F'); }
 
             else if (type === 'curve_right') { addJoint(0, ...p0, 'F'); addJoint(1, ...pCR, 'M'); }
             else if (type === 'curve_left') { addJoint(0, ...p0, 'F'); addJoint(1, ...pCL, 'M'); }
@@ -436,7 +426,7 @@
 
             if (type === 'slope_up' || type === 'slope_down' || type === 'slope_up_flip' || type === 'slope_down_flip') {
                 const len = L * 2;
-                geometry = new THREE.BoxGeometry(W, 0.4, len, 1, 1, 32); 
+                geometry = new THREE.BoxGeometry(W, 0.4, len, 1, 1, 16); 
                 geometry.translate(0, 0.2, len/2);
                 const pos = geometry.attributes.position;
                 const isUp = type.includes('slope_up');
@@ -450,25 +440,25 @@
                 }
                 geometry.computeVertexNormals();
             }
-            else if (type.startsWith('slope_curve_')) {
-                const isRight = type.includes('_right');
+            else if (type === 'slope_curve_A' || type === 'slope_curve_B') {
+                const isB = type === 'slope_curve_B';
                 const shape = new THREE.Shape();
-                if (isRight) {
+                if (isB) {
                     shape.absarc(L, 0, L + W/2, Math.PI, Math.PI - Math.PI/4, true); 
                     shape.absarc(L, 0, L - W/2, Math.PI - Math.PI/4, Math.PI, false);
                 } else {
                     shape.absarc(-L, 0, L + W/2, 0, Math.PI/4, false); 
                     shape.absarc(-L, 0, L - W/2, Math.PI/4, 0, true);
                 }
-                geometry = new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: false, curveSegments: 32 });
+                // 細かい線を減らすため curveSegments を小さめに
+                geometry = new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: false, curveSegments: 16 });
                 geometry.rotateX(Math.PI / 2); geometry.translate(0, 0.4, 0);
                 
                 const pos = geometry.attributes.position;
-                const isUp = type.includes('_up');
-                const cx = isRight ? L : -L;
+                const cx = isB ? L : -L;
                 const cz = 0;
-                const startAngle = isRight ? Math.PI : 0;
-                const endAngle = isRight ? Math.PI - Math.PI/4 : Math.PI/4;
+                const startAngle = isB ? Math.PI : 0;
+                const endAngle = isB ? Math.PI - Math.PI/4 : Math.PI/4;
                 const angleRange = endAngle - startAngle;
                 
                 for(let i = 0; i < pos.count; i++) {
@@ -476,14 +466,12 @@
                     const z = pos.getZ(i);
                     let angle = Math.atan2(z - cz, x - cx);
                     
-                    if (isRight && angle < 0) angle += Math.PI * 2;
+                    if (isB && angle < 0) angle += Math.PI * 2;
                     
                     let t = (angle - startAngle) / angleRange;
                     t = Math.max(0, Math.min(1, t)); 
                     
                     let smoothT = t * t * (3 - 2 * t);
-                    if (!isUp) smoothT = 1 - smoothT;
-                    
                     pos.setY(i, pos.getY(i) + smoothT * (H_UNIT / 4));
                 }
                 geometry.computeVertexNormals();
@@ -506,12 +494,27 @@
                 } else if (type === 'outer_curve_left') {
                     shape.absarc(-(L+OFFSET), 0, (L+OFFSET) + W/2, 0, Math.PI/4, false); shape.absarc(-(L+OFFSET), 0, (L+OFFSET) - W/2, Math.PI/4, 0, true);
                 }
-                geometry = new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: false, curveSegments: 32 });
+                geometry = new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: false, curveSegments: 16 });
                 geometry.rotateX(Math.PI / 2); geometry.translate(0, 0.4, 0); 
             }
 
             if(geometry) {
                 rail.geometry = geometry; rail.material = mat; addEdges(rail, geometry);
+            }
+
+            // 曲線坂レール固有の「直接くっついてる青い橋脚（サポート）」を追加
+            if (type === 'slope_curve_A' || type === 'slope_curve_B') {
+                const isB = type === 'slope_curve_B';
+                const supportGeo = new THREE.BoxGeometry(W, H_UNIT/4, 1.5);
+                const endX = isB ? pCR[0] : pCL[0];
+                const endZ = isB ? pCR[2] : pCL[2];
+                const endRot = isB ? Math.PI/4 : -Math.PI/4;
+                supportGeo.translate(0, (H_UNIT/4)/2, 0);
+                supportGeo.rotateY(endRot);
+                supportGeo.translate(endX, 0, endZ);
+                const supportMesh = new THREE.Mesh(supportGeo, mat);
+                addEdges(supportMesh, supportGeo);
+                rail.add(supportMesh);
             }
 
             const addBridge = (x, y, z, rotY) => {
@@ -540,14 +543,14 @@
                 for(let i=1; i<outerPts.length; i++) shape.lineTo(outerPts[i].x, outerPts[i].y);
                 for(let i=innerPts.length-1; i>=0; i--) shape.lineTo(innerPts[i].x, innerPts[i].y);
                 shape.closePath();
-                const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: false, curveSegments: 32 }); geo.rotateX(Math.PI/2); geo.translate(0, 0.4, 0);
+                const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: false, curveSegments: 16 }); geo.rotateX(Math.PI/2); geo.translate(0, 0.4, 0);
                 const mesh = new THREE.Mesh(geo, mat); addEdges(mesh, geo); rail.add(mesh);
             } else if (type.startsWith('3way_')) {
                 const geoS = new THREE.BoxGeometry(W, 0.4, L); geoS.translate(0, 0.2, L/2); const meshS = new THREE.Mesh(geoS, mat); addEdges(meshS, geoS); rail.add(meshS);
                 const shapeR = new THREE.Shape(); shapeR.absarc(L, 0, L + W/2, Math.PI, Math.PI - Math.PI/4, true); shapeR.absarc(L, 0, L - W/2, Math.PI - Math.PI/4, Math.PI, false);
-                const geoR = new THREE.ExtrudeGeometry(shapeR, { depth: 0.4, bevelEnabled: false, curveSegments: 32 }); geoR.rotateX(Math.PI/2); geoR.translate(0, 0.4, 0); const meshR = new THREE.Mesh(geoR, mat); addEdges(meshR, geoR); rail.add(meshR);
+                const geoR = new THREE.ExtrudeGeometry(shapeR, { depth: 0.4, bevelEnabled: false, curveSegments: 16 }); geoR.rotateX(Math.PI/2); geoR.translate(0, 0.4, 0); const meshR = new THREE.Mesh(geoR, mat); addEdges(meshR, geoR); rail.add(meshR);
                 const shapeL = new THREE.Shape(); shapeL.absarc(-L, 0, L + W/2, 0, Math.PI/4, false); shapeL.absarc(-L, 0, L - W/2, Math.PI/4, 0, true);
-                const geoL = new THREE.ExtrudeGeometry(shapeL, { depth: 0.4, bevelEnabled: false, curveSegments: 32 }); geoL.rotateX(Math.PI/2); geoL.translate(0, 0.4, 0); const meshL = new THREE.Mesh(geoL, mat); addEdges(meshL, geoL); rail.add(meshL);
+                const geoL = new THREE.ExtrudeGeometry(shapeL, { depth: 0.4, bevelEnabled: false, curveSegments: 16 }); geoL.rotateX(Math.PI/2); geoL.translate(0, 0.4, 0); const meshL = new THREE.Mesh(geoL, mat); addEdges(meshL, geoL); rail.add(meshL);
             } else if (type === 'double_straight') {
                 const geo2 = new THREE.BoxGeometry(W, 0.4, L); geo2.translate(-OFFSET, 0.2, L/2); const mesh2 = new THREE.Mesh(geo2, mat); addEdges(mesh2, geo2); rail.add(mesh2);
                 addBridge(-OFFSET/2, 0.1, L*0.33, 0); addBridge(-OFFSET/2, 0.1, L*0.67, 0);
@@ -556,39 +559,39 @@
                 const isLeft = type === 'double_crossover_L'; const D = isLeft ? -OFFSET : OFFSET; const sShape = new THREE.Shape();
                 for (let i = 0; i <= 32; i++) { const t = i/32, x0 = (D/2)*(1 - Math.cos(Math.PI*t)), y0 = L*t, dx = (D/2)*Math.PI*Math.sin(Math.PI*t), dy = L, len = Math.sqrt(dx*dx+dy*dy); sShape[i===0?'moveTo':'lineTo'](x0+(W/2)*(dy/len), y0+(W/2)*(-dx/len)); }
                 for (let i = 32; i >= 0; i--) { const t = i/32, x0 = (D/2)*(1 - Math.cos(Math.PI*t)), y0 = L*t, dx = (D/2)*Math.PI*Math.sin(Math.PI*t), dy = L, len = Math.sqrt(dx*dx+dy*dy); sShape.lineTo(x0-(W/2)*(dy/len), y0-(W/2)*(-dx/len)); }
-                const sGeo = new THREE.ExtrudeGeometry(sShape, { depth: 0.42, bevelEnabled: false, curveSegments: 32 }); sGeo.rotateX(Math.PI/2); sGeo.translate(0, 0.41, 0); 
+                const sGeo = new THREE.ExtrudeGeometry(sShape, { depth: 0.42, bevelEnabled: false, curveSegments: 16 }); sGeo.rotateX(Math.PI/2); sGeo.translate(0, 0.41, 0); 
                 if (!isLeft) sGeo.translate(-OFFSET, 0, 0); const sMesh = new THREE.Mesh(sGeo, mat); addEdges(sMesh, sGeo); rail.add(sMesh);
             } else if (type === 'double_curve_right') {
                 const shape = new THREE.Shape(); shape.absarc(L, 0, L+OFFSET + W/2, Math.PI, Math.PI - Math.PI/4, true); shape.absarc(L, 0, L+OFFSET - W/2, Math.PI - Math.PI/4, Math.PI, false);
-                const cGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: false, curveSegments: 32 }); cGeo.rotateX(Math.PI/2); cGeo.translate(0, 0.4, 0); const cMesh = new THREE.Mesh(cGeo, mat); addEdges(cMesh, cGeo); rail.add(cMesh);
+                const cGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: false, curveSegments: 16 }); cGeo.rotateX(Math.PI/2); cGeo.translate(0, 0.4, 0); const cMesh = new THREE.Mesh(cGeo, mat); addEdges(cMesh, cGeo); rail.add(cMesh);
                 const R = L + OFFSET/2, a1 = Math.PI - Math.PI/12, a2 = Math.PI - Math.PI/6; addBridge(L + R*Math.cos(a1), 0.1, R*Math.sin(a1), -a1); addBridge(L + R*Math.cos(a2), 0.1, R*Math.sin(a2), -a2);
             } else if (type === 'double_curve_left') {
                 const shape = new THREE.Shape(); shape.absarc(-L, 0, L-OFFSET + W/2, 0, Math.PI/4, false); shape.absarc(-L, 0, L-OFFSET - W/2, Math.PI/4, 0, true);
-                const cGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: false, curveSegments: 32 }); cGeo.rotateX(Math.PI/2); cGeo.translate(0, 0.4, 0); const cMesh = new THREE.Mesh(cGeo, mat); addEdges(cMesh, cGeo); rail.add(cMesh);
+                const cGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: false, curveSegments: 16 }); cGeo.rotateX(Math.PI/2); cGeo.translate(0, 0.4, 0); const cMesh = new THREE.Mesh(cGeo, mat); addEdges(cMesh, cGeo); rail.add(cMesh);
                 const R = L - OFFSET/2, a1 = Math.PI/12, a2 = Math.PI/6; addBridge(-L + R*Math.cos(a1), 0.1, R*Math.sin(a1), -a1); addBridge(-L + R*Math.cos(a2), 0.1, R*Math.sin(a2), -a2);
             } else if (type.startsWith('turnout_')) {
                 const shape = new THREE.Shape();
                 if (type.includes('_L_')) { shape.absarc(-L, 0, L + W/2, 0, Math.PI/4, false); shape.absarc(-L, 0, L - W/2, Math.PI/4, 0, true); }
                 else { shape.absarc(L, 0, L + W/2, Math.PI, Math.PI - Math.PI/4, true); shape.absarc(L, 0, L - W/2, Math.PI - Math.PI/4, Math.PI, false); }
-                const cGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: false, curveSegments: 32 }); cGeo.rotateX(Math.PI/2); cGeo.translate(0, 0.4, 0);  const cMesh = new THREE.Mesh(cGeo, mat); addEdges(cMesh, cGeo); rail.add(cMesh);
+                const cGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: false, curveSegments: 16 }); cGeo.rotateX(Math.PI/2); cGeo.translate(0, 0.4, 0);  const cMesh = new THREE.Mesh(cGeo, mat); addEdges(cMesh, cGeo); rail.add(cMesh);
             } else if (type.startsWith('fig8_')) {
                 const shapeR = new THREE.Shape(); shapeR.absarc(L, 0, L + W/2, Math.PI, Math.PI - Math.PI/4, true); shapeR.absarc(L, 0, L - W/2, Math.PI - Math.PI/4, Math.PI, false);
-                const geoR = new THREE.ExtrudeGeometry(shapeR, { depth: 0.4, bevelEnabled: false, curveSegments: 32 }); geoR.rotateX(Math.PI/2); geoR.translate(0, 0.4, 0); const meshR = new THREE.Mesh(geoR, mat); addEdges(meshR, geoR); rail.add(meshR);
+                const geoR = new THREE.ExtrudeGeometry(shapeR, { depth: 0.4, bevelEnabled: false, curveSegments: 16 }); geoR.rotateX(Math.PI/2); geoR.translate(0, 0.4, 0); const meshR = new THREE.Mesh(geoR, mat); addEdges(meshR, geoR); rail.add(meshR);
                 const shapeL = new THREE.Shape(); shapeL.absarc(-L, 0, L + W/2, 0, Math.PI/4, false); shapeL.absarc(-L, 0, L - W/2, Math.PI/4, 0, true);
-                const geoL = new THREE.ExtrudeGeometry(shapeL, { depth: 0.4, bevelEnabled: false, curveSegments: 32 }); geoL.rotateX(Math.PI/2); geoL.translate(0, 0.4, 0); const meshL = new THREE.Mesh(geoL, mat); addEdges(meshL, geoL); rail.add(meshL);
+                const geoL = new THREE.ExtrudeGeometry(shapeL, { depth: 0.4, bevelEnabled: false, curveSegments: 16 }); geoL.rotateX(Math.PI/2); geoL.translate(0, 0.4, 0); const meshL = new THREE.Mesh(geoL, mat); addEdges(meshL, geoL); rail.add(meshL);
             } else if (type.startsWith('y_point_')) {
                 const createBranch = (D) => {
                     const sShape = new THREE.Shape();
                     for (let i = 0; i <= 32; i++) { const t = i/32, x0 = (D/2)*(1 - Math.cos(Math.PI*t)), y0 = L*t, dx = (D/2)*Math.PI*Math.sin(Math.PI*t), dy = L, len = Math.sqrt(dx*dx+dy*dy); sShape[i===0?'moveTo':'lineTo'](x0+(W/2)*(dy/len), y0+(W/2)*(-dx/len)); }
                     for (let i = 32; i >= 0; i--) { const t = i/32, x0 = (D/2)*(1 - Math.cos(Math.PI*t)), y0 = L*t, dx = (D/2)*Math.PI*Math.sin(Math.PI*t), dy = L, len = Math.sqrt(dx*dx+dy*dy); sShape.lineTo(x0-(W/2)*(dy/len), y0-(W/2)*(-dx/len)); }
-                    const sGeo = new THREE.ExtrudeGeometry(sShape, { depth: 0.4, bevelEnabled: false, curveSegments: 32 }); sGeo.rotateX(Math.PI/2); sGeo.translate(0, 0.4, 0); const sMesh = new THREE.Mesh(sGeo, mat); addEdges(sMesh, sGeo); rail.add(sMesh);
+                    const sGeo = new THREE.ExtrudeGeometry(sShape, { depth: 0.4, bevelEnabled: false, curveSegments: 16 }); sGeo.rotateX(Math.PI/2); sGeo.translate(0, 0.4, 0); const sMesh = new THREE.Mesh(sGeo, mat); addEdges(sMesh, sGeo); rail.add(sMesh);
                 };
                 createBranch(2.5); createBranch(-2.5);
             } else if (type.startsWith('double_point_')) {
                 const sShape = new THREE.Shape(), D = type.includes('_R_') ? OFFSET : -OFFSET;
                 for (let i = 0; i <= 32; i++) { const t = i/32, x0 = (D/2)*(1 - Math.cos(Math.PI*t)), y0 = L*t, dx = (D/2)*Math.PI*Math.sin(Math.PI*t), dy = L, len = Math.sqrt(dx*dx+dy*dy); sShape[i===0?'moveTo':'lineTo'](x0+(W/2)*(dy/len), y0+(W/2)*(-dx/len)); }
                 for (let i = 32; i >= 0; i--) { const t = i/32, x0 = (D/2)*(1 - Math.cos(Math.PI*t)), y0 = L*t, dx = (D/2)*Math.PI*Math.sin(Math.PI*t), dy = L, len = Math.sqrt(dx*dx+dy*dy); sShape.lineTo(x0-(W/2)*(dy/len), y0-(W/2)*(-dx/len)); }
-                const sGeo = new THREE.ExtrudeGeometry(sShape, { depth: 0.4, bevelEnabled: false, curveSegments: 32 }); sGeo.rotateX(Math.PI/2); sGeo.translate(0, 0.4, 0); const sMesh = new THREE.Mesh(sGeo, mat); addEdges(sMesh, sGeo); rail.add(sMesh);
+                const sGeo = new THREE.ExtrudeGeometry(sShape, { depth: 0.4, bevelEnabled: false, curveSegments: 16 }); sGeo.rotateX(Math.PI/2); sGeo.translate(0, 0.4, 0); const sMesh = new THREE.Mesh(sGeo, mat); addEdges(sMesh, sGeo); rail.add(sMesh);
             }
 
             const addPeg = (x, y, z, dx, dy, dz) => {
@@ -609,15 +612,8 @@
             else if (type === 'slope_up_flip') { addPeg(0, 0, 0, 0, 0, -1); }
             else if (type === 'slope_down_flip') { addPeg(0, H_UNIT, 0, 0, 0, -1); }
             
-            else if (type === 'slope_curve_right_up') { addPeg(0,0,0, 0,0,-1); addPeg(pCR[0], H_Q, pCR[2], pCR[3], pCR[4], pCR[5]); }
-            else if (type === 'slope_curve_right_down') { addPeg(0,H_Q,0, 0,0,-1); addPeg(...pCR); }
-            else if (type === 'slope_curve_right_up_flip') { addPeg(0,0,0, 0,0,-1); }
-            else if (type === 'slope_curve_right_down_flip') { addPeg(0,H_Q,0, 0,0,-1); }
-            
-            else if (type === 'slope_curve_left_up') { addPeg(0,0,0, 0,0,-1); addPeg(pCL[0], H_Q, pCL[2], pCL[3], pCL[4], pCL[5]); }
-            else if (type === 'slope_curve_left_down') { addPeg(0,H_Q,0, 0,0,-1); addPeg(...pCL); }
-            else if (type === 'slope_curve_left_up_flip') { addPeg(0,0,0, 0,0,-1); }
-            else if (type === 'slope_curve_left_down_flip') { addPeg(0,H_Q,0, 0,0,-1); }
+            else if (type === 'slope_curve_A') { addPeg(pCL[0], H_Q, pCL[2], pCL[3], pCL[4], pCL[5]); }
+            else if (type === 'slope_curve_B') { addPeg(0, 0, 0, 0, 0, -1); }
 
             else if (type === 'curve_right') addPeg(...pCR);
             else if (type === 'curve_left') addPeg(...pCL);
@@ -663,21 +659,6 @@
                 const arrow = arrowMeshes[arrowMeshes.length - 1];
                 arrow.rotation.x = isUp ? -Math.atan2(H_UNIT, 2*L) : Math.atan2(H_UNIT, 2*L);
             }
-            else if (type.startsWith('slope_curve_')) {
-                const isUp = type.includes('_up');
-                const isRight = type.includes('_right');
-                const cx = isRight ? L : -L;
-                const cz = 0;
-                const a = isRight ? Math.PI - Math.PI/8 : Math.PI/8;
-                const r = L;
-                const x = cx + r * Math.cos(a);
-                const z = cz + r * Math.sin(a);
-                const y = 0.41 + H_Q * 0.5;
-                const rotY = isRight ? Math.PI/8 : -Math.PI/8;
-                appendArrow(x, y, z, rotY);
-                const arrow = arrowMeshes[arrowMeshes.length - 1];
-                arrow.rotation.x = isUp ? -Math.atan2(H_Q, L * Math.PI/4) : Math.atan2(H_Q, L * Math.PI/4);
-            }
             else if (type === 'curve_right') appendArrow(L - L*Math.cos(Math.PI/8), 0.41, L*Math.sin(Math.PI/8), Math.PI/8);
             else if (type === 'curve_left') appendArrow(-L + L*Math.cos(Math.PI/8), 0.41, L*Math.sin(Math.PI/8), -Math.PI/8);
             else if (type === 'outer_curve_right') appendArrow((L+OFFSET) - (L+OFFSET)*Math.cos(Math.PI/8), 0.41, (L+OFFSET)*Math.sin(Math.PI/8), Math.PI/8);
@@ -716,10 +697,7 @@
             if (isConnected(selectedObject)) return showMessage("接続中は変更できません。");
             const map = {
                 'curve_right':'curve_left', 'curve_left':'curve_right', 
-                'slope_curve_right_up':'slope_curve_left_up', 'slope_curve_left_up':'slope_curve_right_up',
-                'slope_curve_right_down':'slope_curve_left_down', 'slope_curve_left_down':'slope_curve_right_down',
-                'slope_curve_right_up_flip':'slope_curve_left_up_flip', 'slope_curve_left_up_flip':'slope_curve_right_up_flip',
-                'slope_curve_right_down_flip':'slope_curve_left_down_flip', 'slope_curve_left_down_flip':'slope_curve_right_down_flip',
+                'slope_curve_A':'slope_curve_B', 'slope_curve_B':'slope_curve_A',
                 'outer_curve_right':'outer_curve_left', 'outer_curve_left':'outer_curve_right', 
                 'turnout_L_out':'turnout_R_out', 'turnout_R_out':'turnout_L_out', 
                 'turnout_L_in':'turnout_R_in', 'turnout_R_in':'turnout_L_in', 
@@ -750,14 +728,8 @@
             else if (t === 'slope_up_flip') replaceSelectedRail('slope_up');
             else if (t === 'slope_down') replaceSelectedRail('slope_down_flip');
             else if (t === 'slope_down_flip') replaceSelectedRail('slope_down');
-            else if (t === 'slope_curve_right_up') replaceSelectedRail('slope_curve_right_up_flip');
-            else if (t === 'slope_curve_right_up_flip') replaceSelectedRail('slope_curve_right_up');
-            else if (t === 'slope_curve_right_down') replaceSelectedRail('slope_curve_right_down_flip');
-            else if (t === 'slope_curve_right_down_flip') replaceSelectedRail('slope_curve_right_down');
-            else if (t === 'slope_curve_left_up') replaceSelectedRail('slope_curve_left_up_flip');
-            else if (t === 'slope_curve_left_up_flip') replaceSelectedRail('slope_curve_left_up');
-            else if (t === 'slope_curve_left_down') replaceSelectedRail('slope_curve_left_down_flip');
-            else if (t === 'slope_curve_left_down_flip') replaceSelectedRail('slope_curve_left_down');
+            else if (t === 'slope_curve_A') replaceSelectedRail('slope_curve_B');
+            else if (t === 'slope_curve_B') replaceSelectedRail('slope_curve_A');
             else if (t === 'fig8_F_RM') replaceSelectedRail('fig8_M_RM');
             else if (t === 'fig8_M_RM') replaceSelectedRail('fig8_F_RM');
             else if (t === 'fig8_F_LM') replaceSelectedRail('fig8_M_LM');
