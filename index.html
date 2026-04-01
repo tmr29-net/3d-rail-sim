@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>3D Rail Sim - Real Piers</title>
+    <title>3D Rail Sim - Slope Curves & Mini Piers</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: sans-serif; touch-action: none; background: #1a1a1a; }
         #ui { position: absolute; top: 10px; left: 10px; display: flex; flex-wrap: wrap; gap: 5px; z-index: 10; width: 250px; max-height: 95vh; overflow-y: auto; padding-right: 5px; }
         #ui::-webkit-scrollbar { width: 6px; } #ui::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
-        button { padding: 8px; font-size: 12px; cursor: pointer; border: none; border-radius: 6px; background: #2196F3; color: white; font-weight: bold; width: 100%; transition: opacity 0.2s; box-sizing: border-box; }
+        button { padding: 8px; font-size: 11px; cursor: pointer; border: none; border-radius: 6px; background: #2196F3; color: white; font-weight: bold; width: 100%; transition: opacity 0.2s; box-sizing: border-box; }
         button:active { opacity: 0.7; }
         .inst { position: absolute; bottom: 10px; left: 10px; color: #ccc; font-size: 12px; pointer-events: none; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 4px; line-height: 1.4;}
         #status { color: #ff5252; font-weight: bold; margin-top: 5px; min-height: 1.2em; text-shadow: 1px 1px 2px black; font-size: 12px; width: 100%; }
         
         .flex-row { display: flex; gap: 5px; width: 100%; }
-        .flex-row button { flex: 1; padding: 8px 4px; }
+        .flex-row button { flex: 1; padding: 8px 2px; }
         .divider { width: 100%; height: 1px; background: #444; margin: 3px 0; }
         .category-label { color: #ccc; font-size: 11px; width: 100%; margin-bottom: -2px; font-weight: bold; }
     </style>
@@ -41,8 +41,16 @@
         <div class="divider"></div>
         <div class="category-label">▼ 坂・高架レール群</div>
         <div class="flex-row">
-            <button onclick="addRail('slope_up')" style="background:#ffb300; color:#000;">坂レール (上り)</button>
-            <button onclick="addRail('slope_down')" style="background:#ffb300; color:#000;">坂レール (下り)</button>
+            <button onclick="addRail('slope_up')" style="background:#ffb300; color:#000;">直線坂 (上り)</button>
+            <button onclick="addRail('slope_down')" style="background:#ffb300; color:#000;">直線坂 (下り)</button>
+        </div>
+        <div class="flex-row">
+            <button onclick="addRail('slope_curve_right_up')" style="background:#FF9800; color:#000;">坂曲線 (右・上)</button>
+            <button onclick="addRail('slope_curve_right_down')" style="background:#FF9800; color:#000;">坂曲線 (右・下)</button>
+        </div>
+        <div class="flex-row">
+            <button onclick="addRail('slope_curve_left_up')" style="background:#FF9800; color:#000;">坂曲線 (左・上)</button>
+            <button onclick="addRail('slope_curve_left_down')" style="background:#FF9800; color:#000;">坂曲線 (左・下)</button>
         </div>
 
         <div class="divider"></div>
@@ -72,8 +80,10 @@
         <div class="divider"></div>
         <div class="category-label">▼ 操作・編集</div>
         <div class="flex-row">
-            <button onclick="changeHeight(1)" style="background:#00BCD4;">高さを上げる ⬆️</button>
-            <button onclick="changeHeight(-1)" style="background:#0097A7;">高さを下げる ⬇️</button>
+            <button onclick="changeHeight(1)" style="background:#00BCD4;">1 ⬆️</button>
+            <button onclick="changeHeight(0.25)" style="background:#26C6DA;">1/4 ⤴️</button>
+            <button onclick="changeHeight(-0.25)" style="background:#4DD0E1;">1/4 ⤵️</button>
+            <button onclick="changeHeight(-1)" style="background:#0097A7;">1 ⬇️</button>
         </div>
         <div class="flex-row">
             <button onclick="rotate(1)" style="background:#4CAF50;">↺ 左45°</button>
@@ -109,9 +119,8 @@
     </div>
     
     <div class="inst">
-        ◆ 選択中レールの高さはボタン「⬆️/⬇️」で変更可能<br>
-        ◆ 高架になると自動で黄色いブロック橋脚が設置されます。<br>
-        ◆ ポイント・分岐や坂レールは「ジョイント入替」で仕様変更可能です。<br>
+        ◆ 高さ変更は 1（ブロック橋脚）と 1/4（ミニ橋脚）単位で調整可能<br>
+        ◆ 高架になると自動で橋脚（黄色＋青色）が計算され設置されます。<br>
         ◆ 視点移動: 右クリック(2本指)ドラッグ
     </div>
 
@@ -133,12 +142,13 @@
         const W = 1.8;
         const SNAP_DIST = 2.5; 
         const OFFSET = 2.8;
-        const H_UNIT = 3.0; // 高さレベル1あたりのY座標
+        const H_UNIT = 3.0; // ブロック橋脚の高さ
 
         const matNormal = new THREE.MeshPhongMaterial({ color: 0x0072bc });
         const matDark = new THREE.MeshPhongMaterial({ color: 0x004488 });
         const matRed = new THREE.MeshPhongMaterial({ color: 0xcc2222 });
-        const matYellow = new THREE.MeshPhongMaterial({ color: 0xffd600 }); // 橋脚用
+        const matYellow = new THREE.MeshPhongMaterial({ color: 0xffd600 });
+        const edgeMatNormal = new THREE.LineBasicMaterial({ color: 0x001133 });
 
         const p0 = [0, 0, 0, 0, 0, -1];
         const pS = [0, 0, L, 0, 0, 1];
@@ -149,6 +159,7 @@
 
         let pierGroup;
         let pierGeo, pierEdges, pierEdgeMat;
+        let miniPierGeo, miniPierEdges;
 
         init();
         animate();
@@ -169,41 +180,34 @@
             dirLight.position.set(10, 20, 10);
             scene.add(dirLight);
             
-            // --- 橋脚（ブロック橋脚）モデルの作成 ---
             pierGroup = new THREE.Group();
             scene.add(pierGroup);
 
+            // --- ブロック橋脚 (高さ 1) ---
             const pierShape = new THREE.Shape();
-            const pw = 1.7;  // 橋脚の全幅の半分 (下が空洞になるよう広めに)
-            const ph = H_UNIT; // 高さ
-            const th = 0.4;  // 左右の柱の太さ
-            const topTh = 0.5; // 上部のレールを支える梁の太さ
+            const pw = 1.7;  
+            const ph = H_UNIT; 
+            const th = 0.4;  
+            const topTh = 0.5; 
 
-            // 逆U字型（門の形）のパスを描画
-            pierShape.moveTo(-pw, 0);
-            pierShape.lineTo(-pw, ph);
-            pierShape.lineTo(pw, ph);
-            pierShape.lineTo(pw, 0);
-            pierShape.lineTo(pw - th, 0);
-            pierShape.lineTo(pw - th, ph - topTh);
-            pierShape.lineTo(-pw + th, ph - topTh);
-            pierShape.lineTo(-pw + th, 0);
+            pierShape.moveTo(-pw, 0); pierShape.lineTo(-pw, ph); pierShape.lineTo(pw, ph); pierShape.lineTo(pw, 0);
+            pierShape.lineTo(pw - th, 0); pierShape.lineTo(pw - th, ph - topTh); pierShape.lineTo(-pw + th, ph - topTh); pierShape.lineTo(-pw + th, 0);
             pierShape.closePath();
 
-            // 奥行きを持たせて立体化
-            pierGeo = new THREE.ExtrudeGeometry(pierShape, { 
-                depth: 1.8, 
-                bevelEnabled: true, 
-                bevelSegments: 2, 
-                steps: 1, 
-                bevelSize: 0.05, 
-                bevelThickness: 0.05 
-            });
-            // Z軸の中央を原点に合わせる
+            pierGeo = new THREE.ExtrudeGeometry(pierShape, { depth: 1.8, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.05, bevelThickness: 0.05 });
             pierGeo.translate(0, 0, -0.9);
-            
             pierEdges = new THREE.EdgesGeometry(pierGeo);
             pierEdgeMat = new THREE.LineBasicMaterial({ color: 0xb89a00 });
+
+            // --- ミニ橋脚 (高さ 1/4) ---
+            const miniPierShape = new THREE.Shape();
+            const mph = H_UNIT / 4;
+            miniPierShape.moveTo(-pw, 0); miniPierShape.lineTo(-pw, mph); miniPierShape.lineTo(pw, mph); miniPierShape.lineTo(pw, 0);
+            miniPierShape.closePath();
+
+            miniPierGeo = new THREE.ExtrudeGeometry(miniPierShape, { depth: 1.8, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.05, bevelThickness: 0.05 });
+            miniPierGeo.translate(0, 0, -0.9);
+            miniPierEdges = new THREE.EdgesGeometry(miniPierGeo);
 
             orbit = new OrbitControls(camera, renderer.domElement);
             orbit.enableDamping = true; 
@@ -233,13 +237,10 @@
                     while (obj && !rails.includes(obj)) obj = obj.parent;
                     if (obj) {
                         orbit.enabled = false; selectedObject = obj; draggingRail = obj; highlight(obj);
-                        const hitPt = new THREE.Vector3();
-                        
-                        // 現在のレールのY座標に合わせてドラッグ平面を設定
                         const planeY = obj.position.y;
                         dragPlane.constant = -planeY;
                         obj.userData.baseY = planeY;
-
+                        const hitPt = new THREE.Vector3();
                         if (raycaster.ray.intersectPlane(dragPlane, hitPt)) dragOffset.copy(hitPt).sub(obj.position);
                         renderer.domElement.setPointerCapture(e.pointerId);
                     }
@@ -253,74 +254,78 @@
                     const hitPt = new THREE.Vector3();
                     if (raycaster.ray.intersectPlane(dragPlane, hitPt)) {
                         draggingRail.position.copy(hitPt).sub(dragOffset); 
-                        draggingRail.position.y = draggingRail.userData.baseY; // 一旦元の高さを維持
-                        checkSnap(draggingRail); // スナップすればY座標も上書きされる
+                        draggingRail.position.y = draggingRail.userData.baseY; 
+                        checkSnap(draggingRail);
                     }
                 }
             });
-            const onPointerUp = (e) => { 
-                if (draggingRail) {
-                    renderer.domElement.releasePointerCapture(e.pointerId); 
-                    updatePiers(); // ドラッグ完了時に橋脚を更新
-                }
+            renderer.domElement.addEventListener('pointerup', (e) => { 
+                if (draggingRail) { renderer.domElement.releasePointerCapture(e.pointerId); updatePiers(); }
                 draggingRail = null; orbit.enabled = true; 
-            };
-            renderer.domElement.addEventListener('pointerup', onPointerUp);
+            });
         }
 
-        // --- 高さ変更機能 ---
+        // --- 高さ変更機能 (1 または 1/4 単位) ---
         window.changeHeight = (delta) => {
-            if (!selectedObject) {
-                return showMessage("レールを選択してください。");
-            }
-            if (isConnected(selectedObject)) {
-                return showMessage("接続中は高さを変更できません。");
-            }
+            if (!selectedObject) return showMessage("レールを選択してください。");
+            if (isConnected(selectedObject)) return showMessage("接続中は高さを変更できません。");
             
             selectedObject.position.y += delta * H_UNIT;
+            if (selectedObject.position.y < 0) selectedObject.position.y = 0;
             
-            // 地面より下には行かないように制限
-            if (selectedObject.position.y < 0) {
-                selectedObject.position.y = 0;
-            }
-            
-            selectedObject.userData.baseY = selectedObject.position.y; // ドラッグ用の基準高さを更新
+            selectedObject.userData.baseY = selectedObject.position.y;
             checkSnap(selectedObject);
             updatePiers();
         };
 
-        // --- 橋脚マネージャー ---
+        // --- 橋脚マネージャー (1/4単位対応) ---
         function updatePiers() {
             pierGroup.clear();
             const spots = [];
 
-            // 全レールの全ジョイントを収集し、同じ場所(X,Z)にある最大高さを計算
             rails.forEach(rail => {
                 const joints = getJointData(rail);
                 joints.forEach(j => {
-                    const level = Math.round(j.pos.y / H_UNIT);
-                    if (level > 0) {
+                    const qLevel = Math.round(j.pos.y / (H_UNIT / 4));
+                    if (qLevel > 0) {
                         let found = spots.find(s => Math.hypot(s.x - j.pos.x, s.z - j.pos.z) < 0.5);
                         if (found) {
                             found.maxY = Math.max(found.maxY, j.pos.y);
                         } else {
-                            let rotY = Math.atan2(j.dir.x, j.dir.z); // 水平方向の向き
+                            let rotY = Math.atan2(j.dir.x, j.dir.z); 
                             spots.push({ x: j.pos.x, z: j.pos.z, maxY: j.pos.y, rotY });
                         }
                     }
                 });
             });
 
-            // 収集したスポットに橋脚を積み上げる
             spots.forEach(spot => {
-                const maxLevel = Math.round(spot.maxY / H_UNIT);
-                for (let i = 0; i < maxLevel; i++) {
+                const maxLevel = Math.round(spot.maxY / (H_UNIT / 4));
+                const numQuarter = maxLevel % 4; // 下に敷く1/4橋脚の数
+                const numFull = Math.floor(maxLevel / 4); // 上に乗せる1橋脚の数
+                
+                let currentY = 0;
+                
+                // 1/4橋脚（レール色）を下から積む
+                for (let i = 0; i < numQuarter; i++) {
+                    const mesh = new THREE.Mesh(miniPierGeo, matNormal);
+                    mesh.position.set(spot.x, currentY, spot.z);
+                    mesh.rotation.y = spot.rotY;
+                    const edges = new THREE.LineSegments(miniPierEdges, edgeMatNormal);
+                    mesh.add(edges);
+                    pierGroup.add(mesh);
+                    currentY += (H_UNIT / 4);
+                }
+                
+                // ブロック橋脚（黄色）をその上に積む
+                for (let i = 0; i < numFull; i++) {
                     const mesh = new THREE.Mesh(pierGeo, matYellow);
-                    mesh.position.set(spot.x, i * H_UNIT, spot.z); // ExtrudeはY=0から始まるためそのまま積める
+                    mesh.position.set(spot.x, currentY, spot.z);
                     mesh.rotation.y = spot.rotY;
                     const edges = new THREE.LineSegments(pierEdges, pierEdgeMat);
                     mesh.add(edges);
                     pierGroup.add(mesh);
+                    currentY += H_UNIT;
                 }
             });
         }
@@ -331,6 +336,7 @@
             const addJoint = (id, x, y, z, dx, dy, dz, gender) => {
                 joints.push({ id, pos: new THREE.Vector3(x, y, z).applyMatrix4(m), dir: new THREE.Vector3(dx, dy, dz).applyQuaternion(q).normalize(), gender });
             };
+            const H_Q = H_UNIT / 4;
 
             if (type === 'straight') { addJoint(0, ...p0, 'F'); addJoint(1, ...pS, 'M'); }
             else if (type === 'double_length_straight') { addJoint(0, ...p0, 'F'); addJoint(1, 0, 0, 2*L, 0, 0, 1, 'M'); }
@@ -339,11 +345,20 @@
             else if (type === 'quarter_straight_MM') { addJoint(0, ...p0, 'M'); addJoint(1, 0, 0, L/4, 0, 0, 1, 'M'); }
             else if (type === 'quarter_straight_FF') { addJoint(0, ...p0, 'F'); addJoint(1, 0, 0, L/4, 0, 0, 1, 'F'); }
             
-            // 坂レール
             else if (type === 'slope_up') { addJoint(0, 0,0,0, 0,0,-1, 'F'); addJoint(1, 0,H_UNIT,2*L, 0,0,1, 'M'); }
             else if (type === 'slope_down') { addJoint(0, 0,H_UNIT,0, 0,0,-1, 'F'); addJoint(1, 0,0,2*L, 0,0,1, 'M'); }
             else if (type === 'slope_up_flip') { addJoint(0, 0,0,0, 0,0,-1, 'M'); addJoint(1, 0,H_UNIT,2*L, 0,0,1, 'F'); }
             else if (type === 'slope_down_flip') { addJoint(0, 0,H_UNIT,0, 0,0,-1, 'M'); addJoint(1, 0,0,2*L, 0,0,1, 'F'); }
+
+            // 坂曲線
+            else if (type === 'slope_curve_right_up') { addJoint(0, ...p0, 'F'); addJoint(1, pCR[0], H_Q, pCR[2], pCR[3], pCR[4], pCR[5], 'M'); }
+            else if (type === 'slope_curve_right_down') { addJoint(0, p0[0], H_Q, p0[2], p0[3], p0[4], p0[5], 'F'); addJoint(1, ...pCR, 'M'); }
+            else if (type === 'slope_curve_right_up_flip') { addJoint(0, ...p0, 'M'); addJoint(1, pCR[0], H_Q, pCR[2], pCR[3], pCR[4], pCR[5], 'F'); }
+            else if (type === 'slope_curve_right_down_flip') { addJoint(0, p0[0], H_Q, p0[2], p0[3], p0[4], p0[5], 'M'); addJoint(1, ...pCR, 'F'); }
+            else if (type === 'slope_curve_left_up') { addJoint(0, ...p0, 'F'); addJoint(1, pCL[0], H_Q, pCL[2], pCL[3], pCL[4], pCL[5], 'M'); }
+            else if (type === 'slope_curve_left_down') { addJoint(0, p0[0], H_Q, p0[2], p0[3], p0[4], p0[5], 'F'); addJoint(1, ...pCL, 'M'); }
+            else if (type === 'slope_curve_left_up_flip') { addJoint(0, ...p0, 'M'); addJoint(1, pCL[0], H_Q, pCL[2], pCL[3], pCL[4], pCL[5], 'F'); }
+            else if (type === 'slope_curve_left_down_flip') { addJoint(0, p0[0], H_Q, p0[2], p0[3], p0[4], p0[5], 'M'); addJoint(1, ...pCL, 'F'); }
 
             else if (type === 'curve_right') { addJoint(0, ...p0, 'F'); addJoint(1, ...pCR, 'M'); }
             else if (type === 'curve_left') { addJoint(0, ...p0, 'F'); addJoint(1, ...pCL, 'M'); }
@@ -398,11 +413,8 @@
                 if (other === dragged) continue;
                 for (let mj of myJoints) {
                     for (let oj of getJointData(other)) {
-                        // 3次元距離でスナップ判定 (Y座標の差も考慮される)
                         if (mj.pos.distanceTo(oj.pos) < SNAP_DIST && mj.dir.dot(oj.dir) < -0.9 && mj.gender !== oj.gender) {
                             if (occupied.filter(occ => occ.rail !== dragged && occ.pos.distanceTo(oj.pos) < 0.1).length >= 2) continue;
-                            
-                            // 相手のジョイント位置にピタッと合わせる (Y軸も追従)
                             dragged.position.add(new THREE.Vector3().subVectors(oj.pos, mj.pos));
                             dragged.updateMatrixWorld();
                             return;
@@ -420,23 +432,59 @@
             let geometry;
             const rail = new THREE.Mesh();
             rail.userData = { type, baseY: 0 };
-            const addEdges = (mesh, geo) => mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0x001133 })));
+            const addEdges = (mesh, geo) => mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMatNormal));
 
-            // 坂レールジオメトリの生成
-            if (type.startsWith('slope_')) {
+            if (type === 'slope_up' || type === 'slope_down' || type === 'slope_up_flip' || type === 'slope_down_flip') {
                 const len = L * 2;
                 geometry = new THREE.BoxGeometry(W, 0.4, len, 1, 1, 32); 
                 geometry.translate(0, 0.2, len/2);
                 const pos = geometry.attributes.position;
                 const isUp = type.includes('slope_up');
                 
-                // 頂点のY座標をS字カーブに沿って持ち上げる
                 for(let i = 0; i < pos.count; i++) {
                     const z = pos.getZ(i);
                     const t = z / len;
                     let smoothT = t * t * (3 - 2 * t);
                     if (!isUp) smoothT = 1 - smoothT;
                     pos.setY(i, pos.getY(i) + smoothT * H_UNIT);
+                }
+                geometry.computeVertexNormals();
+            }
+            else if (type.startsWith('slope_curve_')) {
+                const isRight = type.includes('_right');
+                const shape = new THREE.Shape();
+                if (isRight) {
+                    shape.absarc(L, 0, L + W/2, Math.PI, Math.PI - Math.PI/4, true); 
+                    shape.absarc(L, 0, L - W/2, Math.PI - Math.PI/4, Math.PI, false);
+                } else {
+                    shape.absarc(-L, 0, L + W/2, 0, Math.PI/4, false); 
+                    shape.absarc(-L, 0, L - W/2, Math.PI/4, 0, true);
+                }
+                geometry = new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: false, curveSegments: 32 });
+                geometry.rotateX(Math.PI / 2); geometry.translate(0, 0.4, 0);
+                
+                const pos = geometry.attributes.position;
+                const isUp = type.includes('_up');
+                const cx = isRight ? L : -L;
+                const cz = 0;
+                const startAngle = isRight ? Math.PI : 0;
+                const endAngle = isRight ? Math.PI - Math.PI/4 : Math.PI/4;
+                const angleRange = endAngle - startAngle;
+                
+                for(let i = 0; i < pos.count; i++) {
+                    const x = pos.getX(i);
+                    const z = pos.getZ(i);
+                    let angle = Math.atan2(z - cz, x - cx);
+                    
+                    if (isRight && angle < 0) angle += Math.PI * 2;
+                    
+                    let t = (angle - startAngle) / angleRange;
+                    t = Math.max(0, Math.min(1, t)); 
+                    
+                    let smoothT = t * t * (3 - 2 * t);
+                    if (!isUp) smoothT = 1 - smoothT;
+                    
+                    pos.setY(i, pos.getY(i) + smoothT * (H_UNIT / 4));
                 }
                 geometry.computeVertexNormals();
             }
@@ -543,12 +591,13 @@
                 const sGeo = new THREE.ExtrudeGeometry(sShape, { depth: 0.4, bevelEnabled: false, curveSegments: 32 }); sGeo.rotateX(Math.PI/2); sGeo.translate(0, 0.4, 0); const sMesh = new THREE.Mesh(sGeo, mat); addEdges(sMesh, sGeo); rail.add(sMesh);
             }
 
-            // ジョイント・ペグの描画
             const addPeg = (x, y, z, dx, dy, dz) => {
                 const pegGeo = new THREE.BoxGeometry(0.8, 0.4, 0.6); pegGeo.translate(0, 0.2, 0.3);
                 const peg = new THREE.Mesh(pegGeo, mat); peg.position.set(x, y, z); peg.rotation.y = Math.atan2(dx, dz);
                 peg.userData.ignoreRaycast = true; addEdges(peg, pegGeo); rail.add(peg);
             };
+
+            const H_Q = H_UNIT / 4;
 
             if (type === 'straight') addPeg(...pS);
             else if (type === 'double_length_straight') addPeg(0, 0, 2*L, 0, 0, 1);
@@ -559,6 +608,17 @@
             else if (type === 'slope_down') { addPeg(0, 0, 2*L, 0, 0, 1); }
             else if (type === 'slope_up_flip') { addPeg(0, 0, 0, 0, 0, -1); }
             else if (type === 'slope_down_flip') { addPeg(0, H_UNIT, 0, 0, 0, -1); }
+            
+            else if (type === 'slope_curve_right_up') { addPeg(0,0,0, 0,0,-1); addPeg(pCR[0], H_Q, pCR[2], pCR[3], pCR[4], pCR[5]); }
+            else if (type === 'slope_curve_right_down') { addPeg(0,H_Q,0, 0,0,-1); addPeg(...pCR); }
+            else if (type === 'slope_curve_right_up_flip') { addPeg(0,0,0, 0,0,-1); }
+            else if (type === 'slope_curve_right_down_flip') { addPeg(0,H_Q,0, 0,0,-1); }
+            
+            else if (type === 'slope_curve_left_up') { addPeg(0,0,0, 0,0,-1); addPeg(pCL[0], H_Q, pCL[2], pCL[3], pCL[4], pCL[5]); }
+            else if (type === 'slope_curve_left_down') { addPeg(0,H_Q,0, 0,0,-1); addPeg(...pCL); }
+            else if (type === 'slope_curve_left_up_flip') { addPeg(0,0,0, 0,0,-1); }
+            else if (type === 'slope_curve_left_down_flip') { addPeg(0,H_Q,0, 0,0,-1); }
+
             else if (type === 'curve_right') addPeg(...pCR);
             else if (type === 'curve_left') addPeg(...pCL);
             else if (type === 'outer_curve_right') addPeg(...pOCR);
@@ -585,7 +645,6 @@
             else if (type === 'double_point_R_out') { addPeg(...pS); addPeg(OFFSET, 0, L, 0, 0, 1); }
             else if (type.endsWith('_in') && type.startsWith('double_point_')) addPeg(...p0);
 
-            // 進行方向矢印
             const appendArrow = (x, y, z, rotY) => {
                 const shape = new THREE.Shape(); shape.moveTo(0, -0.8); shape.lineTo(0.5, 0.2); shape.lineTo(0.2, 0.2); shape.lineTo(0.2, 0.8); shape.lineTo(-0.2, 0.8); shape.lineTo(-0.2, 0.2); shape.lineTo(-0.5, 0.2); shape.closePath();
                 const geo = new THREE.ShapeGeometry(shape); geo.rotateX(-Math.PI/2);
@@ -598,11 +657,26 @@
             else if (type === 'double_length_straight') appendArrow(0, 0.41, L, 0);
             else if (type === 'half_straight') appendArrow(0, 0.41, L/4, 0);
             else if (type === 'quarter_straight') appendArrow(0, 0.41, L/8, 0);
-            else if (type.startsWith('slope_')) {
+            else if (type.startsWith('slope_') && !type.includes('curve')) {
                 const isUp = type.includes('slope_up');
                 appendArrow(0, 0.5 * H_UNIT + 0.45, L, 0);
                 const arrow = arrowMeshes[arrowMeshes.length - 1];
                 arrow.rotation.x = isUp ? -Math.atan2(H_UNIT, 2*L) : Math.atan2(H_UNIT, 2*L);
+            }
+            else if (type.startsWith('slope_curve_')) {
+                const isUp = type.includes('_up');
+                const isRight = type.includes('_right');
+                const cx = isRight ? L : -L;
+                const cz = 0;
+                const a = isRight ? Math.PI - Math.PI/8 : Math.PI/8;
+                const r = L;
+                const x = cx + r * Math.cos(a);
+                const z = cz + r * Math.sin(a);
+                const y = 0.41 + H_Q * 0.5;
+                const rotY = isRight ? Math.PI/8 : -Math.PI/8;
+                appendArrow(x, y, z, rotY);
+                const arrow = arrowMeshes[arrowMeshes.length - 1];
+                arrow.rotation.x = isUp ? -Math.atan2(H_Q, L * Math.PI/4) : Math.atan2(H_Q, L * Math.PI/4);
             }
             else if (type === 'curve_right') appendArrow(L - L*Math.cos(Math.PI/8), 0.41, L*Math.sin(Math.PI/8), Math.PI/8);
             else if (type === 'curve_left') appendArrow(-L + L*Math.cos(Math.PI/8), 0.41, L*Math.sin(Math.PI/8), -Math.PI/8);
@@ -625,7 +699,6 @@
 
         window.addRail = (type) => {
             const rail = createRailObject(type); 
-            // 空中にスナップさせるため、現在カメラが注視している地面の高さに合わせて生成
             rail.position.set(orbit.target.x, 0, orbit.target.z);
             scene.add(rail); rails.push(rail); selectedObject = rail; highlight(rail); 
             checkSnap(rail);
@@ -643,6 +716,10 @@
             if (isConnected(selectedObject)) return showMessage("接続中は変更できません。");
             const map = {
                 'curve_right':'curve_left', 'curve_left':'curve_right', 
+                'slope_curve_right_up':'slope_curve_left_up', 'slope_curve_left_up':'slope_curve_right_up',
+                'slope_curve_right_down':'slope_curve_left_down', 'slope_curve_left_down':'slope_curve_right_down',
+                'slope_curve_right_up_flip':'slope_curve_left_up_flip', 'slope_curve_left_up_flip':'slope_curve_right_up_flip',
+                'slope_curve_right_down_flip':'slope_curve_left_down_flip', 'slope_curve_left_down_flip':'slope_curve_right_down_flip',
                 'outer_curve_right':'outer_curve_left', 'outer_curve_left':'outer_curve_right', 
                 'turnout_L_out':'turnout_R_out', 'turnout_R_out':'turnout_L_out', 
                 'turnout_L_in':'turnout_R_in', 'turnout_R_in':'turnout_L_in', 
@@ -673,6 +750,14 @@
             else if (t === 'slope_up_flip') replaceSelectedRail('slope_up');
             else if (t === 'slope_down') replaceSelectedRail('slope_down_flip');
             else if (t === 'slope_down_flip') replaceSelectedRail('slope_down');
+            else if (t === 'slope_curve_right_up') replaceSelectedRail('slope_curve_right_up_flip');
+            else if (t === 'slope_curve_right_up_flip') replaceSelectedRail('slope_curve_right_up');
+            else if (t === 'slope_curve_right_down') replaceSelectedRail('slope_curve_right_down_flip');
+            else if (t === 'slope_curve_right_down_flip') replaceSelectedRail('slope_curve_right_down');
+            else if (t === 'slope_curve_left_up') replaceSelectedRail('slope_curve_left_up_flip');
+            else if (t === 'slope_curve_left_up_flip') replaceSelectedRail('slope_curve_left_up');
+            else if (t === 'slope_curve_left_down') replaceSelectedRail('slope_curve_left_down_flip');
+            else if (t === 'slope_curve_left_down_flip') replaceSelectedRail('slope_curve_left_down');
             else if (t === 'fig8_F_RM') replaceSelectedRail('fig8_M_RM');
             else if (t === 'fig8_M_RM') replaceSelectedRail('fig8_F_RM');
             else if (t === 'fig8_F_LM') replaceSelectedRail('fig8_M_LM');
