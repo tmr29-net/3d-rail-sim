@@ -12,7 +12,6 @@
         button:active { opacity: 0.7; }
         .inst { position: absolute; bottom: 10px; left: 10px; color: #ccc; font-size: 12px; pointer-events: none; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 4px; line-height: 1.4;}
         #status { color: #ff5252; font-weight: bold; margin-top: 5px; min-height: 1.2em; text-shadow: 1px 1px 2px black; font-size: 12px; width: 100%; }
-        
         .flex-row { display: flex; gap: 5px; width: 100%; }
         .flex-row button { flex: 1; padding: 8px 2px; }
         .divider { width: 100%; height: 1px; background: #444; margin: 3px 0; }
@@ -87,7 +86,7 @@
 
         <button onclick="flipCurve()" style="background:#9C27B0;">レール裏返し (左右反転) ⇄</button>
         <button onclick="flipGender()" style="background:#E91E63;">ジョイント(凸凹)入替</button>
-        
+         
         <div class="flex-row">
             <button onclick="toggleAutoAlign()" id="autoAlignBtn" style="background:#FF9800;">自動回転: ON</button>
             <button onclick="deleteRail()" style="background:#f44336;">選択削除</button>
@@ -144,41 +143,14 @@
         const pCR = [-L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4)];
         const pOCL = [(L+OFFSET) * (1 - Math.cos(Math.PI/4)), 0, (L+OFFSET) * Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4)];
         const pOCR = [-(L+OFFSET) * (1 - Math.cos(Math.PI/4)), 0, (L+OFFSET) * Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4)];
-
+        
         const railPrefs = {
-            'curve': 'curve_right',
-            'double_length_curve': 'double_length_curve_right',
-            's_curve': 's_curve_L',
-            'turnout': 'turnout_L_out',
-            'fig8': 'fig8_F_RM',
-            'y_point': 'y_point_F_RM',
-            '3way': '3way_A',
-            'slope': 'slope_up',
-            'double_curve': 'double_curve_right',
-            'outer_curve': 'outer_curve_right',
-            'double_turnout': 'double_turnout_L',
-            'double_crossover': 'double_crossover_L',
-            'double_point': 'double_point_L_out'
-        };
-
-        const railGroupMap = {
-            'curve_right': 'curve', 'curve_left': 'curve',
-            'double_length_curve_right': 'double_length_curve', 'double_length_curve_left': 'double_length_curve',
-            's_curve_L': 's_curve', 's_curve_R': 's_curve',
-            's_curve_L_flip': 's_curve', 's_curve_R_flip': 's_curve',
-            'turnout_L_out': 'turnout', 'turnout_R_out': 'turnout',
-            'turnout_L_in': 'turnout', 'turnout_R_in': 'turnout',
-            'fig8_F_RM': 'fig8', 'fig8_F_LM': 'fig8', 'fig8_M_RM': 'fig8', 'fig8_M_LM': 'fig8',
-            'y_point_F_RM': 'y_point', 'y_point_F_LM': 'y_point', 'y_point_M_RM': 'y_point', 'y_point_M_LM': 'y_point',
-            '3way_A': '3way', '3way_B': '3way', '3way_A_flip': '3way', '3way_B_flip': '3way',
-            'slope_up': 'slope', 'slope_down': 'slope', 'slope_up_flip': 'slope', 'slope_down_flip': 'slope',
-            'double_curve_right': 'double_curve', 'double_curve_left': 'double_curve',
-            'outer_curve_right': 'outer_curve', 'outer_curve_left': 'outer_curve',
-            'double_turnout_L': 'double_turnout', 'double_turnout_R': 'double_turnout',
-            'double_turnout_L_flip': 'double_turnout', 'double_turnout_R_flip': 'double_turnout',
-            'double_crossover_L': 'double_crossover', 'double_crossover_R': 'double_crossover',
-            'double_point_L_out': 'double_point', 'double_point_R_out': 'double_point',
-            'double_point_L_in': 'double_point', 'double_point_R_in': 'double_point'
+            'curve': 'curve_right', 'double_length_curve': 'double_length_curve_right',
+            's_curve': 's_curve_L', 'turnout': 'turnout_L_out',
+            'fig8': 'fig8_F_RM', 'y_point': 'y_point_F_RM', '3way': '3way_A',
+            'slope': 'slope_up', 'double_curve': 'double_curve_right',
+            'outer_curve': 'outer_curve_right', 'double_turnout': 'double_turnout_L',
+            'double_crossover': 'double_crossover_L', 'double_point': 'double_point_L_out'
         };
 
         let pierGroup;
@@ -203,14 +175,16 @@
             const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
             dirLight.position.set(10, 20, 10);
             scene.add(dirLight);
-            
+
             pierGroup = new THREE.Group();
             scene.add(pierGroup);
 
             const pierShape = new THREE.Shape();
             const pw = 1.7, ph = H_UNIT, th = 0.4, topTh = 0.5; 
-            pierShape.moveTo(-pw, 0); pierShape.lineTo(-pw, ph); pierShape.lineTo(pw, ph); pierShape.lineTo(pw, 0);
-            pierShape.lineTo(pw - th, 0); pierShape.lineTo(pw - th, ph - topTh); pierShape.lineTo(-pw + th, ph - topTh); pierShape.lineTo(-pw + th, 0);
+            pierShape.moveTo(-pw, 0); pierShape.lineTo(-pw, ph); pierShape.lineTo(pw, ph);
+            pierShape.lineTo(pw, 0);
+            pierShape.lineTo(pw - th, 0); pierShape.lineTo(pw - th, ph - topTh); pierShape.lineTo(-pw + th, ph - topTh);
+            pierShape.lineTo(-pw + th, 0);
             pierShape.closePath();
             pierGeo = new THREE.ExtrudeGeometry(pierShape, { depth: 1.8, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.05, bevelThickness: 0.05 });
             pierGeo.translate(0, 0, -0.9);
@@ -237,6 +211,12 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
+        function showMessage(msg) {
+            const status = document.getElementById('status');
+            status.innerText = msg;
+            setTimeout(() => { if (status.innerText === msg) status.innerText = ''; }, 3000);
+        }
+
         function setupCustomDrag() {
             const raycaster = new THREE.Raycaster();
             const mouse = new THREE.Vector2();
@@ -248,6 +228,7 @@
                 mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
                 raycaster.setFromCamera(mouse, camera);
                 const validHits = raycaster.intersectObjects(rails, true).filter(h => h.object.type === 'Mesh' && !h.object.userData.ignoreRaycast);
+            
                 if (validHits.length > 0) {
                     let obj = validHits[0].object;
                     while (obj && !rails.includes(obj)) obj = obj.parent;
@@ -287,6 +268,7 @@
                     }
                 }
             });
+
             renderer.domElement.addEventListener('pointerup', (e) => { 
                 if (draggingRail) { renderer.domElement.releasePointerCapture(e.pointerId); updatePiers(); }
                 draggingRail = null; orbit.enabled = true; 
@@ -414,22 +396,26 @@
                 addJoint(2, -OFFSET, 0, 0, 0, 0, -1, 'F');
                 addJoint(3, L - (L+OFFSET)*Math.cos(Math.PI/4), 0, (L+OFFSET)*Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M');
             }
+            // ▼ ここが修正ポイント：複線曲線（右）
             else if (type === 'double_curve_right') {
-                addJoint(0, ...p0, 'F'); addJoint(1, ...pCR, 'M');
+                addJoint(0, ...p0, 'F');
+                addJoint(1, ...pOCR, 'M');
                 addJoint(2, -OFFSET, 0, 0, 0, 0, -1, 'F');
-                addJoint(3, -L + (L-OFFSET)*Math.cos(Math.PI/4), 0, (L-OFFSET)*Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M');
+                addJoint(3, -(L+OFFSET) + L*Math.cos(Math.PI/4), 0, L*Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M');
             }
-            
-            // 複線ターンアウトレールのジョイント（正しく修正）
+            // ▼ ここが修正ポイント：複線ターンアウト（右）
             else if (type === 'double_turnout_L') {
                 addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, 0, 0, L, 0, 0, 1, 'M');
                 addJoint(2, -OFFSET, 0, 0, 0, 0, -1, 'F'); addJoint(3, -OFFSET, 0, L, 0, 0, 1, 'M');
                 addJoint(4, L, 0, L, 1, 0, 0, 'M'); addJoint(5, L, 0, L+OFFSET, 1, 0, 0, 'M');
             }
             else if (type === 'double_turnout_R') {
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, 0, 0, L, 0, 0, 1, 'M');
-                addJoint(2, -OFFSET, 0, 0, 0, 0, -1, 'F'); addJoint(3, -OFFSET, 0, L, 0, 0, 1, 'M');
-                addJoint(4, -L, 0, L, -1, 0, 0, 'M'); addJoint(5, -L, 0, L-OFFSET, -1, 0, 0, 'M');
+                addJoint(0, 0, 0, 0, 0, 0, -1, 'F');
+                addJoint(1, 0, 0, L, 0, 0, 1, 'M');
+                addJoint(2, -OFFSET, 0, 0, 0, 0, -1, 'F');
+                addJoint(3, -OFFSET, 0, L, 0, 0, 1, 'M');
+                addJoint(4, -(L+OFFSET), 0, L+OFFSET, -1, 0, 0, 'M');
+                addJoint(5, -(L+OFFSET), 0, L, -1, 0, 0, 'M');
             }
             else if (type === 'double_turnout_L_flip') {
                 addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); addJoint(1, 0, 0, L, 0, 0, 1, 'F');
@@ -437,59 +423,42 @@
                 addJoint(4, L, 0, L, 1, 0, 0, 'F'); addJoint(5, L, 0, L+OFFSET, 1, 0, 0, 'F');
             }
             else if (type === 'double_turnout_R_flip') {
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); addJoint(1, 0, 0, L, 0, 0, 1, 'F');
-                addJoint(2, -OFFSET, 0, 0, 0, 0, -1, 'M'); addJoint(3, -OFFSET, 0, L, 0, 0, 1, 'F');
-                addJoint(4, -L, 0, L, -1, 0, 0, 'F'); addJoint(5, -L, 0, L-OFFSET, -1, 0, 0, 'F');
+                addJoint(0, 0, 0, 0, 0, 0, -1, 'M');
+                addJoint(1, 0, 0, L, 0, 0, 1, 'F');
+                addJoint(2, -OFFSET, 0, 0, 0, 0, -1, 'M');
+                addJoint(3, -OFFSET, 0, L, 0, 0, 1, 'F');
+                addJoint(4, -(L+OFFSET), 0, L+OFFSET, -1, 0, 0, 'F');
+                addJoint(5, -(L+OFFSET), 0, L, -1, 0, 0, 'F');
             }
-            
             else if (type === 'turnout_L_out') { addJoint(0, ...p0, 'F'); addJoint(1, ...pS, 'M'); addJoint(2, ...pCL, 'M'); }
             else if (type === 'turnout_R_out') { addJoint(0, ...p0, 'F'); addJoint(1, ...pS, 'M'); addJoint(2, ...pCR, 'M'); }
             else if (type === 'turnout_L_in') { addJoint(1, ...p0, 'M'); addJoint(0, ...pS, 'F'); addJoint(2, ...pCL, 'F'); }
             else if (type === 'turnout_R_in') { addJoint(1, ...p0, 'M'); addJoint(0, ...pS, 'F'); addJoint(2, ...pCR, 'F'); }
-            else if (type === 'fig8_F_RM') { addJoint(0, ...p0, 'F'); addJoint(1, ...pCR, 'M'); addJoint(2, ...pCL, 'F'); }
-            else if (type === 'fig8_M_RM') { addJoint(0, ...p0, 'M'); addJoint(1, ...pCR, 'M'); addJoint(2, ...pCL, 'F'); }
-            else if (type === 'fig8_F_LM') { addJoint(0, ...p0, 'F'); addJoint(1, ...pCR, 'F'); addJoint(2, ...pCL, 'M'); }
-            else if (type === 'fig8_M_LM') { addJoint(0, ...p0, 'M'); addJoint(1, ...pCR, 'F'); addJoint(2, ...pCL, 'M'); }
-            else if (type === 'y_point_F_RM') { addJoint(0, ...p0, 'F'); addJoint(1, -2.5, 0, L, 0, 0, 1, 'M'); addJoint(2, 2.5, 0, L, 0, 0, 1, 'F'); }
-            else if (type === 'y_point_M_RM') { addJoint(0, ...p0, 'M'); addJoint(1, -2.5, 0, L, 0, 0, 1, 'M'); addJoint(2, 2.5, 0, L, 0, 0, 1, 'F'); }
-            else if (type === 'y_point_F_LM') { addJoint(0, ...p0, 'F'); addJoint(1, -2.5, 0, L, 0, 0, 1, 'F'); addJoint(2, 2.5, 0, L, 0, 0, 1, 'M'); }
-            else if (type === 'y_point_M_LM') { addJoint(0, ...p0, 'M'); addJoint(1, -2.5, 0, L, 0, 0, 1, 'F'); addJoint(2, 2.5, 0, L, 0, 0, 1, 'M'); }
-            else if (type === 'double_point_L_out') { addJoint(0, ...p0, 'F'); addJoint(1, ...pS, 'M'); addJoint(2, OFFSET, 0, L, 0, 0, 1, 'M'); }
-            else if (type === 'double_point_R_out') { addJoint(0, ...p0, 'F'); addJoint(1, ...pS, 'M'); addJoint(2, -OFFSET, 0, L, 0, 0, 1, 'M'); }
-            else if (type === 'double_point_L_in') { addJoint(1, ...p0, 'M'); addJoint(0, ...pS, 'F'); addJoint(2, OFFSET, 0, L, 0, 0, 1, 'F'); }
-            else if (type === 'double_point_R_in') { addJoint(1, ...p0, 'M'); addJoint(0, ...pS, 'F'); addJoint(2, -OFFSET, 0, L, 0, 0, 1, 'F'); }
+            
             return joints;
         }
 
-        function checkSnap(dragged, skipAutoAlign = false) {
-            const originalPos = dragged.position.clone();
-            dragged.updateMatrixWorld();
+        function checkSnap(dragged, skipAutoAlign) {
             let myJoints = getJointData(dragged);
-            
             const occupied = [];
-            rails.forEach(r => {
-                if (r !== dragged) getJointData(r).forEach(j => occupied.push({ rail: r, pos: j.pos, dir: j.dir, gender: j.gender }));
-            });
-
+            rails.forEach(r => { if (r !== dragged) getJointData(r).forEach(j => occupied.push({ rail: r, pos: j.pos, dir: j.dir, gender: j.gender })); });
             const type = dragged.userData.type;
             const isBranch = type.includes('turnout') || type.includes('point') || type.includes('fig8') || type.includes('3way') || type.startsWith('double_crossover_');
-
+            
             if (autoAlignEnabled && !isBranch && !skipAutoAlign) {
                 let aligned = false;
                 for (let mj of myJoints) {
                     for (let occ of occupied) {
                         if (mj.pos.distanceTo(occ.pos) < SNAP_DIST * 1.1 && mj.gender !== occ.gender) {
                             const overlapping = occupied.filter(o => occ.pos.distanceTo(o.pos) < 0.1);
-                            if (overlapping.length >= 2) continue; 
-
+                            if (overlapping.length >= 2) continue;
                             const targetAngle = Math.atan2(-occ.dir.x, -occ.dir.z);
                             const currentAngle = Math.atan2(mj.dir.x, mj.dir.z);
                             let diff = targetAngle - currentAngle;
-                            diff = Math.atan2(Math.sin(diff), Math.cos(diff)); 
-                            
+                            diff = Math.atan2(Math.sin(diff), Math.cos(diff));
                             dragged.rotation.y += diff;
                             dragged.updateMatrixWorld();
-                            myJoints = getJointData(dragged); 
+                            myJoints = getJointData(dragged);
                             aligned = true;
                             break;
                         }
@@ -502,37 +471,15 @@
                     myJoints = getJointData(dragged);
                 }
             }
-
+            
             for (let mj of myJoints) {
                 for (let occ of occupied) {
                     if (mj.pos.distanceTo(occ.pos) < SNAP_DIST && mj.dir.dot(occ.dir) < -0.9 && mj.gender !== occ.gender) {
                         const overlapping = occupied.filter(o => occ.pos.distanceTo(o.pos) < 0.1);
                         if (overlapping.length >= 2) continue;
-
-                        const tempPos = dragged.position.clone().add(new THREE.Vector3().subVectors(occ.pos, mj.pos));
-                        dragged.position.copy(tempPos);
+                        dragged.position.add(occ.pos).sub(mj.pos);
                         dragged.updateMatrixWorld();
-                        const tempJoints = getJointData(dragged);
-                        
-                        let validSnap = true;
-                        for (let tj of tempJoints) {
-                            for (let o of occupied) {
-                                if (tj.pos.distanceTo(o.pos) < 0.5) { 
-                                    const oOverlapping = occupied.filter(ox => o.pos.distanceTo(ox.pos) < 0.1);
-                                    if (oOverlapping.length >= 2 || tj.gender === o.gender || tj.dir.dot(o.dir) >= -0.9) {
-                                        validSnap = false; break;
-                                    }
-                                }
-                            }
-                            if (!validSnap) break;
-                        }
-
-                        if (validSnap) return true; 
-                        else {
-                            dragged.position.copy(originalPos);
-                            dragged.updateMatrixWorld();
-                            myJoints = getJointData(dragged);
-                        }
+                        return true;
                     }
                 }
             }
@@ -540,265 +487,233 @@
         }
 
         function createRailObject(type) {
-            let mat = matNormal.clone(); 
-            
+            const rail = new THREE.Group();
+            rail.userData = { type };
+            const mat = matNormal;
+
+            const addEdges = (mesh, geo) => { const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 15), edgeMatNormal); mesh.add(edges); };
+
             let geometry;
-            const rail = new THREE.Mesh();
-            rail.userData = { type, baseY: 0, baseRotation: 0 };
-            
-            const addEdges = (mesh, geo) => mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo, 15), edgeMatNormal));
 
             if (type === 'slope_up' || type === 'slope_down' || type === 'slope_up_flip' || type === 'slope_down_flip') {
-                const len = L * 2;
-                geometry = new THREE.BoxGeometry(W, 0.4, len, 1, 1, 16); 
-                geometry.translate(0, 0.2, len/2);
+                const isUp = type === 'slope_up' || type === 'slope_up_flip';
+                geometry = new THREE.BoxGeometry(W, 0.4, 2*L, 1, 1, 32);
+                geometry.translate(0, 0.2, L);
                 const pos = geometry.attributes.position;
-                const isUp = type.includes('slope_up');
-                
-                for(let i = 0; i < pos.count; i++) {
+                for(let i=0; i<pos.count; i++) {
                     const z = pos.getZ(i);
-                    const t = z / len;
-                    let smoothT = t * t * (3 - 2 * t);
+                    let t = z / (2*L);
+                    let smoothT = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
                     if (!isUp) smoothT = 1 - smoothT;
                     pos.setY(i, pos.getY(i) + smoothT * H_UNIT);
                 }
                 geometry.computeVertexNormals();
-            }
-            else if (type === 'slope_curve_A' || type === 'slope_curve_B') {
+            } else if (type === 'slope_curve_A' || type === 'slope_curve_B') {
                 const isB = type === 'slope_curve_B';
                 const shape = new THREE.Shape();
                 if (isB) {
-                    shape.absarc(-L, 0, L + W/2, 0, Math.PI/4, false); 
+                    shape.absarc(-L, 0, L + W/2, 0, Math.PI/4, false);
                     shape.absarc(-L, 0, L - W/2, Math.PI/4, 0, true);
                 } else {
-                    shape.absarc(L, 0, L + W/2, Math.PI, Math.PI - Math.PI/4, true); 
+                    shape.absarc(L, 0, L + W/2, Math.PI, Math.PI - Math.PI/4, true);
                     shape.absarc(L, 0, L - W/2, Math.PI - Math.PI/4, Math.PI, false);
                 }
                 geometry = new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: false, curveSegments: 16 });
                 geometry.rotateX(Math.PI / 2); geometry.translate(0, 0.4, 0);
-                
                 const pos = geometry.attributes.position;
                 const cx = isB ? -L : L;
                 const startAngle = isB ? 0 : Math.PI;
                 const endAngle = isB ? Math.PI/4 : Math.PI - Math.PI/4;
                 const angleRange = endAngle - startAngle;
-                
                 for(let i = 0; i < pos.count; i++) {
-                    const x = pos.getX(i);
-                    const z = pos.getZ(i);
+                    const x = pos.getX(i); const z = pos.getZ(i);
                     let angle = Math.atan2(z, x - cx);
                     if (angle < 0) angle += Math.PI * 2;
                     let t = (angle - startAngle) / angleRange;
-                    t = Math.max(0, Math.min(1, t)); 
-                    let smoothT = t * t * (3 - 2 * t);
+                    if (!isB) t = 1 - t;
+                    let smoothT = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
                     pos.setY(i, pos.getY(i) + smoothT * (H_UNIT / 4));
                 }
                 geometry.computeVertexNormals();
-            }
-            else if (type === 'double_length_curve_left') {
-                const shape = new THREE.Shape();
-                shape.absarc(L, 0, L + W/2, Math.PI, Math.PI - Math.PI/2, true);
-                shape.absarc(L, 0, L - W/2, Math.PI - Math.PI/2, Math.PI, false);
-                geometry = new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: false, curveSegments: 32 });
-                geometry.rotateX(Math.PI / 2); geometry.translate(0, 0.4, 0);
-            }
-            else if (type === 'double_length_curve_right') {
-                const shape = new THREE.Shape();
-                shape.absarc(-L, 0, L + W/2, 0, Math.PI/2, false);
-                shape.absarc(-L, 0, L - W/2, Math.PI/2, 0, true);
-                geometry = new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: false, curveSegments: 32 });
-                geometry.rotateX(Math.PI / 2); geometry.translate(0, 0.4, 0);
-            }
-            else if (type.startsWith('s_curve_')) {
-                const isLeft = type.includes('_L');
-                const D = isLeft ? OFFSET : -OFFSET;
-                const sShape = new THREE.Shape();
-                for (let i = 0; i <= 32; i++) {
-                    const t = i/32, x0 = (D/2)*(1 - Math.cos(Math.PI*t)), y0 = L*t, dx = (D/2)*Math.PI*Math.sin(Math.PI*t), dy = L, len = Math.sqrt(dx*dx+dy*dy);
-                    sShape[i===0?'moveTo':'lineTo'](x0+(W/2)*(dy/len), y0+(W/2)*(-dx/len));
-                }
-                for (let i = 32; i >= 0; i--) {
-                    const t = i/32, x0 = (D/2)*(1 - Math.cos(Math.PI*t)), y0 = L*t, dx = (D/2)*Math.PI*Math.sin(Math.PI*t), dy = L, len = Math.sqrt(dx*dx+dy*dy);
-                    sShape.lineTo(x0-(W/2)*(dy/len), y0-(W/2)*(-dx/len));
-                }
-                geometry = new THREE.ExtrudeGeometry(sShape, { depth: 0.4, bevelEnabled: false, curveSegments: 16 });
-                geometry.rotateX(Math.PI/2); geometry.translate(0, 0.4, 0);
-            }
-            else if (type === 'straight' || type === 'double_length_straight' || type === 'half_straight' || type.startsWith('quarter_straight') || type === 'double_straight' || type.startsWith('double_crossover_')) {
+            } else if (type === 'straight' || type === 'double_length_straight' || type === 'half_straight' || type.startsWith('quarter_straight') || type === 'double_straight' || type.startsWith('double_crossover_')) {
                 let len = L;
                 if (type === 'double_length_straight') len = L * 2;
                 else if (type === 'half_straight') len = L / 2;
                 else if (type.startsWith('quarter_straight')) len = L / 4;
-                geometry = new THREE.BoxGeometry(W, 0.4, len); geometry.translate(0, 0.2, len/2);
-            } 
-            else if (!type.startsWith('fig8_') && !type.startsWith('y_point_') && !type.startsWith('3way_') && !type.startsWith('double_turnout_') && !type.startsWith('turnout_') && !type.startsWith('double_point_')) {
+                geometry = new THREE.BoxGeometry(W, 0.4, len);
+                geometry.translate(0, 0.2, len/2);
+            } else if (!type.startsWith('fig8_') && !type.startsWith('y_point_') && !type.startsWith('3way_') && !type.startsWith('double_turnout_') && !type.startsWith('turnout_') && !type.startsWith('double_point_')) {
                 const shape = new THREE.Shape();
                 if (type === 'curve_right' || type === 'double_curve_right') {
-                    shape.absarc(-L, 0, L + W/2, 0, Math.PI/4, false); shape.absarc(-L, 0, L - W/2, Math.PI/4, 0, true);
+                    shape.absarc(-L, 0, L + W/2, 0, Math.PI/4, false);
+                    shape.absarc(-L, 0, L - W/2, Math.PI/4, 0, true);
                 } else if (type === 'curve_left' || type === 'double_curve_left') {
-                    shape.absarc(L, 0, L + W/2, Math.PI, Math.PI - Math.PI/4, true); shape.absarc(L, 0, L - W/2, Math.PI - Math.PI/4, Math.PI, false);
-                } else if (type === 'outer_curve_right') {
-                    shape.absarc(-(L+OFFSET), 0, (L+OFFSET) + W/2, 0, Math.PI/4, false); shape.absarc(-(L+OFFSET), 0, (L+OFFSET) - W/2, Math.PI/4, 0, true);
+                    shape.absarc(L, 0, L + W/2, Math.PI, Math.PI - Math.PI/4, true);
+                    shape.absarc(L, 0, L - W/2, Math.PI - Math.PI/4, Math.PI, false);
+                } else if (type === 'double_length_curve_left') {
+                    shape.absarc(L, 0, L + W/2, Math.PI, Math.PI - Math.PI/2, true);
+                    shape.absarc(L, 0, L - W/2, Math.PI - Math.PI/2, Math.PI, false);
+                } else if (type === 'double_length_curve_right') {
+                    shape.absarc(-L, 0, L + W/2, 0, Math.PI/2, false);
+                    shape.absarc(-L, 0, L - W/2, Math.PI/2, 0, true);
+                } else if (type === 's_curve_L' || type === 's_curve_L_flip') {
+                    shape.moveTo(-W/2, 0); shape.lineTo(W/2, 0); shape.lineTo(W/2 + OFFSET, L); shape.lineTo(-W/2 + OFFSET, L);
+                } else if (type === 's_curve_R' || type === 's_curve_R_flip') {
+                    shape.moveTo(-W/2, 0); shape.lineTo(W/2, 0); shape.lineTo(W/2 - OFFSET, L); shape.lineTo(-W/2 - OFFSET, L);
                 } else if (type === 'outer_curve_left') {
-                    shape.absarc(L+OFFSET, 0, (L+OFFSET) + W/2, Math.PI, Math.PI - Math.PI/4, true); shape.absarc(L+OFFSET, 0, (L+OFFSET) - W/2, Math.PI - Math.PI/4, Math.PI, false);
+                    shape.absarc(L+OFFSET, 0, L+OFFSET + W/2, Math.PI, Math.PI - Math.PI/4, true);
+                    shape.absarc(L+OFFSET, 0, L+OFFSET - W/2, Math.PI - Math.PI/4, Math.PI, false);
+                } else if (type === 'outer_curve_right') {
+                    shape.absarc(-(L+OFFSET), 0, L+OFFSET + W/2, 0, Math.PI/4, false);
+                    shape.absarc(-(L+OFFSET), 0, L+OFFSET - W/2, Math.PI/4, 0, true);
                 }
                 geometry = new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: false, curveSegments: 16 });
-                geometry.rotateX(Math.PI / 2); geometry.translate(0, 0.4, 0); 
+                geometry.rotateX(Math.PI/2); geometry.translate(0, 0.4, 0);
             }
 
-            if(geometry) {
-                rail.geometry = geometry; rail.material = mat; addEdges(rail, geometry);
-            }
-
-            // 直線部分をベースとして必ず追加する分岐レール群
-            if (type.startsWith('turnout_') || type.startsWith('double_point_')) {
-                const geoS = new THREE.BoxGeometry(W, 0.4, L); geoS.translate(0, 0.2, L/2); const meshS = new THREE.Mesh(geoS, mat); addEdges(meshS, geoS); rail.add(meshS);
-            }
-
-            if (type === 'slope_curve_A' || type === 'slope_curve_B') {
-                const isB = type === 'slope_curve_B';
-                const endX = isB ? pCR[0] : pCL[0];
-                const endZ = isB ? pCR[2] : pCL[2];
-                const endRot = isB ? -Math.PI/4 : Math.PI/4;
-                
-                const supportMesh = new THREE.Mesh(miniPierGeo, mat);
-                supportMesh.position.set(endX, 0, endZ);
-                supportMesh.rotation.y = endRot;
-                const supportEdges = new THREE.LineSegments(miniPierEdges, edgeMatNormal);
-                supportMesh.add(supportEdges);
-                
-                rail.add(supportMesh);
+            if (geometry) {
+                const mesh = new THREE.Mesh(geometry, mat);
+                addEdges(mesh, geometry);
+                rail.add(mesh);
             }
 
             const addBridge = (x, y, z, rotY) => {
                 const bGeo = new THREE.BoxGeometry(OFFSET, 0.2, 0.8);
                 const bridge = new THREE.Mesh(bGeo, mat);
-                bridge.position.set(x, y, z); bridge.rotation.y = rotY;
-                addEdges(bridge, bGeo); rail.add(bridge);
+                bridge.position.set(x, y, z);
+                bridge.rotation.y = rotY;
+                addEdges(bridge, bGeo);
+                rail.add(bridge);
             };
 
-            if (type.startsWith('3way_')) {
-                const geoS = new THREE.BoxGeometry(W, 0.4, L); geoS.translate(0, 0.2, L/2); const meshS = new THREE.Mesh(geoS, mat); addEdges(meshS, geoS); rail.add(meshS);
-                const shapeR = new THREE.Shape(); shapeR.absarc(-L, 0, L + W/2, 0, Math.PI/4, false); shapeR.absarc(-L, 0, L - W/2, Math.PI/4, 0, true);
-                const geoR = new THREE.ExtrudeGeometry(shapeR, { depth: 0.4, bevelEnabled: false, curveSegments: 16 }); geoR.rotateX(Math.PI/2); geoR.translate(0, 0.4, 0); const meshR = new THREE.Mesh(geoR, mat); addEdges(meshR, geoR); rail.add(meshR);
-                const shapeL = new THREE.Shape(); shapeL.absarc(L, 0, L + W/2, Math.PI, Math.PI - Math.PI/4, true); shapeL.absarc(L, 0, L - W/2, Math.PI - Math.PI/4, Math.PI, false);
-                const geoL = new THREE.ExtrudeGeometry(shapeL, { depth: 0.4, bevelEnabled: false, curveSegments: 16 }); geoL.rotateX(Math.PI/2); geoL.translate(0, 0.4, 0); const meshL = new THREE.Mesh(geoL, mat); addEdges(meshL, geoL); rail.add(meshL);
-            } else if (type === 'double_straight') {
-                const geo2 = new THREE.BoxGeometry(W, 0.4, L); geo2.translate(-OFFSET, 0.2, L/2); const mesh2 = new THREE.Mesh(geo2, mat); addEdges(mesh2, geo2); rail.add(mesh2);
-                addBridge(-OFFSET/2, 0.1, L*0.33, 0); addBridge(-OFFSET/2, 0.1, L*0.67, 0);
-            } else if (type.startsWith('double_crossover_')) {
-                const geo2 = new THREE.BoxGeometry(W, 0.4, L); geo2.translate(-OFFSET, 0.2, L/2); const mesh2 = new THREE.Mesh(geo2, mat); addEdges(mesh2, geo2); rail.add(mesh2);
-                const isLeft = type === 'double_crossover_L'; const D = isLeft ? OFFSET : -OFFSET; const sShape = new THREE.Shape();
-                for (let i = 0; i <= 32; i++) { const t = i/32, x0 = (D/2)*(1 - Math.cos(Math.PI*t)), y0 = L*t, dx = (D/2)*Math.PI*Math.sin(Math.PI*t), dy = L, len = Math.sqrt(dx*dx+dy*dy); sShape[i===0?'moveTo':'lineTo'](x0+(W/2)*(dy/len), y0+(W/2)*(-dx/len)); }
-                for (let i = 32; i >= 0; i--) { const t = i/32, x0 = (D/2)*(1 - Math.cos(Math.PI*t)), y0 = L*t, dx = (D/2)*Math.PI*Math.sin(Math.PI*t), dy = L, len = Math.sqrt(dx*dx+dy*dy); sShape.lineTo(x0-(W/2)*(dy/len), y0-(W/2)*(-dx/len)); }
-                const sGeo = new THREE.ExtrudeGeometry(sShape, { depth: 0.42, bevelEnabled: false, curveSegments: 16 }); sGeo.rotateX(Math.PI/2); sGeo.translate(0, 0.41, 0); 
-                if (isLeft) sGeo.translate(-OFFSET, 0, 0); const sMesh = new THREE.Mesh(sGeo, mat); addEdges(sMesh, sGeo); rail.add(sMesh);
-            } else if (type === 'double_curve_right') {
-                const shape = new THREE.Shape(); shape.absarc(-L, 0, L + W/2, 0, Math.PI/4, false); shape.absarc(-L, 0, L - W/2, Math.PI/4, 0, true);
-                const cGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: false, curveSegments: 16 }); cGeo.rotateX(Math.PI/2); cGeo.translate(0, 0.4, 0); const cMesh = new THREE.Mesh(cGeo, mat); addEdges(cMesh, cGeo); rail.add(cMesh);
-                const shape2 = new THREE.Shape(); shape2.absarc(-L, 0, L-OFFSET + W/2, 0, Math.PI/4, false); shape2.absarc(-L, 0, L-OFFSET - W/2, Math.PI/4, 0, true);
-                const cGeo2 = new THREE.ExtrudeGeometry(shape2, { depth: 0.4, bevelEnabled: false, curveSegments: 16 }); cGeo2.rotateX(Math.PI/2); cGeo2.translate(0, 0.4, 0); const cMesh2 = new THREE.Mesh(cGeo2, mat); addEdges(cMesh2, cGeo2); rail.add(cMesh2);
-                const R = L - OFFSET/2, a1 = Math.PI/12, a2 = Math.PI/6; addBridge(-L + R*Math.cos(a1), 0.1, R*Math.sin(a1), -a1); addBridge(-L + R*Math.cos(a2), 0.1, R*Math.sin(a2), -a2);
+            // 複線や分岐等の個別処理
+            if (type === 'double_straight' || type.startsWith('double_crossover_')) {
+                const geo2 = new THREE.BoxGeometry(W, 0.4, L);
+                geo2.translate(-OFFSET, 0.2, L/2);
+                const mesh2 = new THREE.Mesh(geo2, mat); addEdges(mesh2, geo2); rail.add(mesh2);
+                addBridge(-OFFSET/2, 0.1, L/4, 0); addBridge(-OFFSET/2, 0.1, 3*L/4, 0);
             } else if (type === 'double_curve_left') {
-                const shape = new THREE.Shape(); shape.absarc(L, 0, L+OFFSET + W/2, Math.PI, Math.PI - Math.PI/4, true); shape.absarc(L, 0, L+OFFSET - W/2, Math.PI - Math.PI/4, Math.PI, false);
-                const cGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: false, curveSegments: 16 }); cGeo.rotateX(Math.PI/2); cGeo.translate(0, 0.4, 0); const cMesh = new THREE.Mesh(cGeo, mat); addEdges(cMesh, cGeo); rail.add(cMesh);
-                const shape2 = new THREE.Shape(); shape2.absarc(L, 0, L + W/2, Math.PI, Math.PI - Math.PI/4, true); shape2.absarc(L, 0, L - W/2, Math.PI - Math.PI/4, Math.PI, false);
-                const cGeo2 = new THREE.ExtrudeGeometry(shape2, { depth: 0.4, bevelEnabled: false, curveSegments: 16 }); cGeo2.rotateX(Math.PI/2); cGeo2.translate(0, 0.4, 0); const cMesh2 = new THREE.Mesh(cGeo2, mat); addEdges(cMesh2, cGeo2); rail.add(cMesh2);
-                const R = L + OFFSET/2, a1 = Math.PI - Math.PI/12, a2 = Math.PI - Math.PI/6; addBridge(L + R*Math.cos(a1), 0.1, R*Math.sin(a1), a1); addBridge(L + R*Math.cos(a2), 0.1, R*Math.sin(a2), a2);
-            } else if (type === 'double_turnout_L' || type === 'double_turnout_L_flip') {
-                const geoS1 = new THREE.BoxGeometry(W, 0.4, L); geoS1.translate(0, 0.2, L/2); const meshS1 = new THREE.Mesh(geoS1, mat); addEdges(meshS1, geoS1); rail.add(meshS1);
-                const geoS2 = new THREE.BoxGeometry(W, 0.4, L); geoS2.translate(-OFFSET, 0.2, L/2); const meshS2 = new THREE.Mesh(geoS2, mat); addEdges(meshS2, geoS2); rail.add(meshS2);
-                const shapeB1 = new THREE.Shape(); shapeB1.absarc(L, 0, L + W/2, Math.PI, Math.PI/2, true); shapeB1.absarc(L, 0, L - W/2, Math.PI/2, Math.PI, false);
-                const geoB1 = new THREE.ExtrudeGeometry(shapeB1, { depth: 0.4, bevelEnabled: false, curveSegments: 32 }); geoB1.rotateX(Math.PI/2); geoB1.translate(0, 0.4, 0); const meshB1 = new THREE.Mesh(geoB1, mat); addEdges(meshB1, geoB1); rail.add(meshB1);
-                const shapeB2 = new THREE.Shape(); shapeB2.absarc(L, 0, L+OFFSET + W/2, Math.PI, Math.PI/2, true); shapeB2.absarc(L, 0, L+OFFSET - W/2, Math.PI/2, Math.PI, false);
-                const geoB2 = new THREE.ExtrudeGeometry(shapeB2, { depth: 0.4, bevelEnabled: false, curveSegments: 32 }); geoB2.rotateX(Math.PI/2); geoB2.translate(0, 0.4, 0); const meshB2 = new THREE.Mesh(geoB2, mat); addEdges(meshB2, geoB2); rail.add(meshB2);
-            } else if (type === 'double_turnout_R' || type === 'double_turnout_R_flip') {
-                const geoS1 = new THREE.BoxGeometry(W, 0.4, L); geoS1.translate(0, 0.2, L/2); const meshS1 = new THREE.Mesh(geoS1, mat); addEdges(meshS1, geoS1); rail.add(meshS1);
-                const geoS2 = new THREE.BoxGeometry(W, 0.4, L); geoS2.translate(-OFFSET, 0.2, L/2); const meshS2 = new THREE.Mesh(geoS2, mat); addEdges(meshS2, geoS2); rail.add(meshS2);
-                const shapeB1 = new THREE.Shape(); shapeB1.absarc(-L, 0, L + W/2, 0, Math.PI/2, false); shapeB1.absarc(-L, 0, L - W/2, Math.PI/2, 0, true);
-                const geoB1 = new THREE.ExtrudeGeometry(shapeB1, { depth: 0.4, bevelEnabled: false, curveSegments: 32 }); geoB1.rotateX(Math.PI/2); geoB1.translate(0, 0.4, 0); const meshB1 = new THREE.Mesh(geoB1, mat); addEdges(meshB1, geoB1); rail.add(meshB1);
-                const shapeB2 = new THREE.Shape(); shapeB2.absarc(-L, 0, L-OFFSET + W/2, 0, Math.PI/2, false); shapeB2.absarc(-L, 0, L-OFFSET - W/2, Math.PI/2, 0, true);
-                const geoB2 = new THREE.ExtrudeGeometry(shapeB2, { depth: 0.4, bevelEnabled: false, curveSegments: 32 }); geoB2.rotateX(Math.PI/2); geoB2.translate(0, 0.4, 0); const meshB2 = new THREE.Mesh(geoB2, mat); addEdges(meshB2, geoB2); rail.add(meshB2);
-            } else if (type.startsWith('turnout_')) {
+                const shape2 = new THREE.Shape();
+                shape2.absarc(L, 0, L-OFFSET + W/2, Math.PI, Math.PI - Math.PI/4, true);
+                shape2.absarc(L, 0, L-OFFSET - W/2, Math.PI - Math.PI/4, Math.PI, false);
+                const cGeo2 = new THREE.ExtrudeGeometry(shape2, { depth: 0.4, bevelEnabled: false, curveSegments: 16 });
+                cGeo2.rotateX(Math.PI/2); cGeo2.translate(0, 0.4, 0);
+                const cMesh2 = new THREE.Mesh(cGeo2, mat); addEdges(cMesh2, cGeo2); rail.add(cMesh2);
+                
+                const R = L - OFFSET/2, a1 = Math.PI - Math.PI/12, a2 = Math.PI - Math.PI/6;
+                addBridge(L + R*Math.cos(a1), 0.1, R*Math.sin(a1), -a1);
+                addBridge(L + R*Math.cos(a2), 0.1, R*Math.sin(a2), -a2);
+            }
+            // ▼ ここが修正ポイント：複線曲線（右）の生成
+            else if (type === 'double_curve_right') {
                 const shape = new THREE.Shape();
-                if (type.includes('_L_')) { shape.absarc(L, 0, L + W/2, Math.PI, Math.PI - Math.PI/4, true); shape.absarc(L, 0, L - W/2, Math.PI - Math.PI/4, Math.PI, false); }
-                else { shape.absarc(-L, 0, L + W/2, 0, Math.PI/4, false); shape.absarc(-L, 0, L - W/2, Math.PI/4, 0, true); }
-                const cGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: false, curveSegments: 16 }); cGeo.rotateX(Math.PI/2); cGeo.translate(0, 0.4, 0);  const cMesh = new THREE.Mesh(cGeo, mat); addEdges(cMesh, cGeo); rail.add(cMesh);
-            } else if (type.startsWith('fig8_')) {
-                const shapeR = new THREE.Shape(); shapeR.absarc(-L, 0, L + W/2, 0, Math.PI/4, false); shapeR.absarc(-L, 0, L - W/2, Math.PI/4, 0, true);
-                const geoR = new THREE.ExtrudeGeometry(shapeR, { depth: 0.4, bevelEnabled: false, curveSegments: 16 }); geoR.rotateX(Math.PI/2); geoR.translate(0, 0.4, 0); const meshR = new THREE.Mesh(geoR, mat); addEdges(meshR, geoR); rail.add(meshR);
-                const shapeL = new THREE.Shape(); shapeL.absarc(L, 0, L + W/2, Math.PI, Math.PI - Math.PI/4, true); shapeL.absarc(L, 0, L - W/2, Math.PI - Math.PI/4, Math.PI, false);
-                const geoL = new THREE.ExtrudeGeometry(shapeL, { depth: 0.4, bevelEnabled: false, curveSegments: 16 }); geoL.rotateX(Math.PI/2); geoL.translate(0, 0.4, 0); const meshL = new THREE.Mesh(geoL, mat); addEdges(meshL, geoL); rail.add(meshL);
-            } else if (type.startsWith('y_point_')) {
-                const createBranch = (D) => {
-                    const sShape = new THREE.Shape();
-                    for (let i = 0; i <= 32; i++) { const t = i/32, x0 = (D/2)*(1 - Math.cos(Math.PI*t)), y0 = L*t, dx = (D/2)*Math.PI*Math.sin(Math.PI*t), dy = L, len = Math.sqrt(dx*dx+dy*dy); sShape[i===0?'moveTo':'lineTo'](x0+(W/2)*(dy/len), y0+(W/2)*(-dx/len)); }
-                    for (let i = 32; i >= 0; i--) { const t = i/32, x0 = (D/2)*(1 - Math.cos(Math.PI*t)), y0 = L*t, dx = (D/2)*Math.PI*Math.sin(Math.PI*t), dy = L, len = Math.sqrt(dx*dx+dy*dy); sShape.lineTo(x0-(W/2)*(dy/len), y0-(W/2)*(-dx/len)); }
-                    const sGeo = new THREE.ExtrudeGeometry(sShape, { depth: 0.4, bevelEnabled: false, curveSegments: 16 }); sGeo.rotateX(Math.PI/2); sGeo.translate(0, 0.4, 0); const sMesh = new THREE.Mesh(sGeo, mat); addEdges(sMesh, sGeo); rail.add(sMesh);
-                };
-                createBranch(2.5); createBranch(-2.5);
-            } else if (type.startsWith('double_point_')) {
-                const D = type.includes('_R_') ? -OFFSET : OFFSET;
-                const sShape = new THREE.Shape();
-                for (let i = 0; i <= 32; i++) { const t = i/32, x0 = (D/2)*(1 - Math.cos(Math.PI*t)), y0 = L*t, dx = (D/2)*Math.PI*Math.sin(Math.PI*t), dy = L, len = Math.sqrt(dx*dx+dy*dy); sShape[i===0?'moveTo':'lineTo'](x0+(W/2)*(dy/len), y0+(W/2)*(-dx/len)); }
-                for (let i = 32; i >= 0; i--) { const t = i/32, x0 = (D/2)*(1 - Math.cos(Math.PI*t)), y0 = L*t, dx = (D/2)*Math.PI*Math.sin(Math.PI*t), dy = L, len = Math.sqrt(dx*dx+dy*dy); sShape.lineTo(x0-(W/2)*(dy/len), y0-(W/2)*(-dx/len)); }
-                const sGeo = new THREE.ExtrudeGeometry(sShape, { depth: 0.4, bevelEnabled: false, curveSegments: 16 }); sGeo.rotateX(Math.PI/2); sGeo.translate(0, 0.4, 0); const sMesh = new THREE.Mesh(sGeo, mat); addEdges(sMesh, sGeo); rail.add(sMesh);
+                shape.absarc(-(L+OFFSET), 0, L+OFFSET + W/2, 0, Math.PI/4, false);
+                shape.absarc(-(L+OFFSET), 0, L+OFFSET - W/2, Math.PI/4, 0, true);
+                const cGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: false, curveSegments: 16 });
+                cGeo.rotateX(Math.PI/2); cGeo.translate(0, 0.4, 0);
+                const cMesh = new THREE.Mesh(cGeo, mat); addEdges(cMesh, cGeo); rail.add(cMesh);
+
+                const shape2 = new THREE.Shape();
+                shape2.absarc(-(L+OFFSET), 0, L + W/2, 0, Math.PI/4, false);
+                shape2.absarc(-(L+OFFSET), 0, L - W/2, Math.PI/4, 0, true);
+                const cGeo2 = new THREE.ExtrudeGeometry(shape2, { depth: 0.4, bevelEnabled: false, curveSegments: 16 });
+                cGeo2.rotateX(Math.PI/2); cGeo2.translate(0, 0.4, 0);
+                const cMesh2 = new THREE.Mesh(cGeo2, mat); addEdges(cMesh2, cGeo2); rail.add(cMesh2);
+
+                const R = L + OFFSET/2, a1 = Math.PI/12, a2 = Math.PI/6;
+                addBridge(-(L+OFFSET) + R*Math.cos(a1), 0.1, R*Math.sin(a1), -a1);
+                addBridge(-(L+OFFSET) + R*Math.cos(a2), 0.1, R*Math.sin(a2), -a2);
+            }
+            else if (type === 'double_turnout_L' || type === 'double_turnout_L_flip') {
+                const geoS1 = new THREE.BoxGeometry(W, 0.4, L); geoS1.translate(0, 0.2, L/2);
+                const meshS1 = new THREE.Mesh(geoS1, mat); addEdges(meshS1, geoS1); rail.add(meshS1);
+                const geoS2 = new THREE.BoxGeometry(W, 0.4, L); geoS2.translate(-OFFSET, 0.2, L/2);
+                const meshS2 = new THREE.Mesh(geoS2, mat); addEdges(meshS2, geoS2); rail.add(meshS2);
+
+                const shapeB1 = new THREE.Shape(); shapeB1.absarc(L, 0, L + W/2, Math.PI, Math.PI/2, true); shapeB1.absarc(L, 0, L - W/2, Math.PI/2, Math.PI, false);
+                const geoB1 = new THREE.ExtrudeGeometry(shapeB1, { depth: 0.4, bevelEnabled: false, curveSegments: 32 }); geoB1.rotateX(Math.PI/2); geoB1.translate(0, 0.4, 0);
+                const meshB1 = new THREE.Mesh(geoB1, mat); addEdges(meshB1, geoB1); rail.add(meshB1);
+
+                const shapeB2 = new THREE.Shape(); shapeB2.absarc(L, 0, L+OFFSET + W/2, Math.PI, Math.PI/2, true); shapeB2.absarc(L, 0, L+OFFSET - W/2, Math.PI/2, Math.PI, false);
+                const geoB2 = new THREE.ExtrudeGeometry(shapeB2, { depth: 0.4, bevelEnabled: false, curveSegments: 32 }); geoB2.rotateX(Math.PI/2); geoB2.translate(0, 0.4, 0);
+                const meshB2 = new THREE.Mesh(geoB2, mat); addEdges(meshB2, geoB2); rail.add(meshB2);
+            }
+            // ▼ ここが修正ポイント：複線ターンアウト（右）の生成
+            else if (type === 'double_turnout_R' || type === 'double_turnout_R_flip') {
+                const geoS1 = new THREE.BoxGeometry(W, 0.4, L);
+                geoS1.translate(0, 0.2, L/2);
+                const meshS1 = new THREE.Mesh(geoS1, mat); addEdges(meshS1, geoS1); rail.add(meshS1);
+
+                const geoS2 = new THREE.BoxGeometry(W, 0.4, L);
+                geoS2.translate(-OFFSET, 0.2, L/2);
+                const meshS2 = new THREE.Mesh(geoS2, mat); addEdges(meshS2, geoS2); rail.add(meshS2);
+
+                const shapeB1 = new THREE.Shape();
+                shapeB1.absarc(-(L+OFFSET), 0, L+OFFSET + W/2, 0, Math.PI/2, false);
+                shapeB1.absarc(-(L+OFFSET), 0, L+OFFSET - W/2, Math.PI/2, 0, true);
+                const geoB1 = new THREE.ExtrudeGeometry(shapeB1, { depth: 0.4, bevelEnabled: false, curveSegments: 32 });
+                geoB1.rotateX(Math.PI/2); geoB1.translate(0, 0.4, 0);
+                const meshB1 = new THREE.Mesh(geoB1, mat); addEdges(meshB1, geoB1); rail.add(meshB1);
+
+                const shapeB2 = new THREE.Shape();
+                shapeB2.absarc(-(L+OFFSET), 0, L + W/2, 0, Math.PI/2, false);
+                shapeB2.absarc(-(L+OFFSET), 0, L - W/2, Math.PI/2, 0, true);
+                const geoB2 = new THREE.ExtrudeGeometry(shapeB2, { depth: 0.4, bevelEnabled: false, curveSegments: 32 });
+                geoB2.rotateX(Math.PI/2); geoB2.translate(0, 0.4, 0);
+                const meshB2 = new THREE.Mesh(geoB2, mat); addEdges(meshB2, geoB2); rail.add(meshB2);
+            }
+            else if (type.startsWith('turnout_')) {
+                const isR = type.includes('_R_');
+                const geoS = new THREE.BoxGeometry(W, 0.4, L); geoS.translate(0, 0.2, L/2);
+                const meshS = new THREE.Mesh(geoS, mat); addEdges(meshS, geoS); rail.add(meshS);
+
+                const shapeC = new THREE.Shape();
+                if (isR) { shapeC.absarc(-L, 0, L + W/2, 0, Math.PI/4, false); shapeC.absarc(-L, 0, L - W/2, Math.PI/4, 0, true); }
+                else { shapeC.absarc(L, 0, L + W/2, Math.PI, Math.PI - Math.PI/4, true); shapeC.absarc(L, 0, L - W/2, Math.PI - Math.PI/4, Math.PI, false); }
+                const geoC = new THREE.ExtrudeGeometry(shapeC, { depth: 0.4, bevelEnabled: false, curveSegments: 16 });
+                geoC.rotateX(Math.PI/2); geoC.translate(0, 0.4, 0);
+                const meshC = new THREE.Mesh(geoC, mat); addEdges(meshC, geoC); rail.add(meshC);
             }
 
+            // --- ペグ（接続判定用）の追加 ---
             const addPeg = (x, y, z, dx, dy, dz) => {
-                const pegGeo = new THREE.BoxGeometry(0.8, 0.4, 0.6); pegGeo.translate(0, 0.2, 0.3);
-                const peg = new THREE.Mesh(pegGeo, mat); peg.position.set(x, y, z); peg.rotation.y = Math.atan2(dx, dz);
-                peg.userData.ignoreRaycast = true; addEdges(peg, pegGeo); rail.add(peg);
+                const pGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5); pGeo.translate(x, y + 0.2, z);
+                const pMesh = new THREE.Mesh(pGeo, new THREE.MeshBasicMaterial({ color: 0xff0000, visible: false }));
+                pMesh.userData.ignoreRaycast = true; rail.add(pMesh);
             };
 
-            const H_Q = H_UNIT / 4;
-
-            if (type === 'straight') addPeg(...pS);
+            if (type === 'straight' || type === 'double_straight') addPeg(...pS);
             else if (type === 'double_length_straight') addPeg(0, 0, 2*L, 0, 0, 1);
             else if (type === 'half_straight') addPeg(0, 0, L/2, 0, 0, 1);
-            else if (type === 'quarter_straight') addPeg(0, 0, L/4, 0, 0, 1);
-            else if (type === 'quarter_straight_MM') { addPeg(0, 0, 0, 0, 0, -1); addPeg(0, 0, L/4, 0, 0, 1); }
-            else if (type === 'double_length_curve_left') { addPeg(L, 0, L, 1, 0, 0); }
-            else if (type === 'double_length_curve_right') { addPeg(-L, 0, L, -1, 0, 0); }
-            else if (type === 's_curve_L') { addPeg(OFFSET, 0, L, 0, 0, 1); }
-            else if (type === 's_curve_R') { addPeg(-OFFSET, 0, L, 0, 0, 1); }
-            else if (type === 's_curve_L_flip') { addPeg(0, 0, 0, 0, 0, -1); }
-            else if (type === 's_curve_R_flip') { addPeg(0, 0, 0, 0, 0, -1); }
-            else if (type === 'slope_up') { addPeg(0, 0, 0, 0, 0, -1); }
-            else if (type === 'slope_down') { addPeg(0, H_UNIT, 0, 0, 0, -1); }
-            else if (type === 'slope_up_flip') { addPeg(0, H_UNIT, 2*L, 0, 0, 1); }
-            else if (type === 'slope_down_flip') { addPeg(0, 0, 2*L, 0, 0, 1); }
-            else if (type === 'slope_curve_A') { addPeg(pCL[0], H_Q, pCL[2], pCL[3], pCL[4], pCL[5]); }
-            else if (type === 'slope_curve_B') { addPeg(0, 0, 0, 0, 0, -1); }
+            else if (type.startsWith('quarter_straight')) addPeg(0, 0, L/4, 0, 0, 1);
+            else if (type === 'double_length_curve_left') addPeg(L, 0, L, 1, 0, 0);
+            else if (type === 'double_length_curve_right') addPeg(-L, 0, L, -1, 0, 0);
+            else if (type === 's_curve_L' || type === 's_curve_L_flip') addPeg(OFFSET, 0, L, 0, 0, 1);
+            else if (type === 's_curve_R' || type === 's_curve_R_flip') addPeg(-OFFSET, 0, L, 0, 0, 1);
+            else if (type === 'slope_up' || type === 'slope_up_flip') addPeg(0, H_UNIT, 2*L, 0, 0, 1);
+            else if (type === 'slope_down' || type === 'slope_down_flip') addPeg(0, 0, 2*L, 0, 0, 1);
+            else if (type === 'slope_curve_A') addPeg(pCL[0], H_UNIT/4, pCL[2], pCL[3], pCL[4], pCL[5]);
+            else if (type === 'slope_curve_B') addPeg(0, 0, 0, 0, 0, -1);
             else if (type === 'curve_left') addPeg(...pCL);
             else if (type === 'curve_right') addPeg(...pCR);
             else if (type === 'outer_curve_left') addPeg(...pOCL);
             else if (type === 'outer_curve_right') addPeg(...pOCR);
-            else if (type === '3way_A') { addPeg(...p0); addPeg(...pCL); }
-            else if (type === '3way_B') { addPeg(...pS); addPeg(...pCR); }
-            else if (type === '3way_A_flip') { addPeg(...p0); addPeg(...pCR); } 
-            else if (type === '3way_B_flip') { addPeg(...pS); addPeg(...pCL); } 
-            else if (type === 'double_straight' || type.startsWith('double_crossover_')) { addPeg(...pS); addPeg(-OFFSET, 0, L, 0, 0, 1); }
             else if (type === 'double_curve_left') { addPeg(...pCL); addPeg(L-(L+OFFSET)*Math.cos(Math.PI/4), 0, (L+OFFSET)*Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4)); }
-            else if (type === 'double_curve_right') { addPeg(...pCR); addPeg(-L+(L-OFFSET)*Math.cos(Math.PI/4), 0, (L-OFFSET)*Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4)); }
-            else if (type === 'double_turnout_L') { addPeg(0, 0, L, 0, 0, 1); addPeg(-OFFSET, 0, L, 0, 0, 1); addPeg(L, 0, L, 1, 0, 0); addPeg(L, 0, L+OFFSET, 1, 0, 0); }
-            else if (type === 'double_turnout_R') { addPeg(0, 0, L, 0, 0, 1); addPeg(-OFFSET, 0, L, 0, 0, 1); addPeg(-L, 0, L, -1, 0, 0); addPeg(-L, 0, L-OFFSET, -1, 0, 0); }
-            else if (type === 'double_turnout_L_flip') { addPeg(0, 0, 0, 0, 0, -1); addPeg(-OFFSET, 0, 0, 0, 0, -1); }
-            else if (type === 'double_turnout_R_flip') { addPeg(0, 0, 0, 0, 0, -1); addPeg(-OFFSET, 0, 0, 0, 0, -1); }
+            // ▼ ここが修正ポイント：複線曲線（右）のペグ生成
+            else if (type === 'double_curve_right') { 
+                addPeg(...pOCR); 
+                addPeg(-(L+OFFSET) + L*Math.cos(Math.PI/4), 0, L*Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4));
+            }
+            else if (type === 'double_turnout_L' || type === 'double_turnout_L_flip') { addPeg(...pS); addPeg(-OFFSET, 0, L, 0, 0, 1); addPeg(L, 0, L, 1, 0, 0); addPeg(L, 0, L+OFFSET, 1, 0, 0); }
+            // ▼ ここが修正ポイント：複線ターンアウト（右）のペグ生成
+            else if (type === 'double_turnout_R' || type === 'double_turnout_R_flip') {
+                addPeg(0, 0, L, 0, 0, 1);
+                addPeg(-OFFSET, 0, L, 0, 0, 1);
+                addPeg(-(L+OFFSET), 0, L+OFFSET, -1, 0, 0);
+                addPeg(-(L+OFFSET), 0, L, -1, 0, 0);
+            }
             else if (type === 'turnout_L_out') { addPeg(...pS); addPeg(...pCL); }
             else if (type === 'turnout_R_out') { addPeg(...pS); addPeg(...pCR); }
-            else if (type === 'turnout_L_in' || type === 'turnout_R_in') addPeg(...p0);
-            else if (type === 'fig8_F_LM') { addPeg(...pCL); }
-            else if (type === 'fig8_M_LM') { addPeg(...p0); addPeg(...pCL); }
-            else if (type === 'fig8_F_RM') { addPeg(...pCR); }
-            else if (type === 'fig8_M_RM') { addPeg(...p0); addPeg(...pCR); }
-            else if (type === 'y_point_F_LM') { addPeg(2.5, 0, L, 0, 0, 1); }
-            else if (type === 'y_point_M_LM') { addPeg(...p0); addPeg(2.5, 0, L, 0, 0, 1); }
-            else if (type === 'y_point_F_RM') { addPeg(-2.5, 0, L, 0, 0, 1); }
-            else if (type === 'y_point_M_RM') { addPeg(...p0); addPeg(-2.5, 0, L, 0, 0, 1); }
-            else if (type === 'double_point_L_out') { addPeg(...pS); addPeg(OFFSET, 0, L, 0, 0, 1); }
-            else if (type === 'double_point_R_out') { addPeg(...pS); addPeg(-OFFSET, 0, L, 0, 0, 1); }
-            else if (type.endsWith('_in') && type.startsWith('double_point_')) addPeg(...p0);
 
             return rail;
         }
@@ -806,11 +721,11 @@
         window.addRail = (baseType) => {
             let actualType = baseType;
             if (railPrefs[baseType]) { actualType = railPrefs[baseType]; }
-            const rail = createRailObject(actualType); 
+            const rail = createRailObject(actualType);
             rail.position.set(orbit.target.x, 0, orbit.target.z);
-            scene.add(rail); rails.push(rail); selectedObject = rail; highlight(rail); 
-            checkSnap(rail, true); 
-            updatePiers();
+            scene.add(rail); rails.push(rail);
+            selectedObject = rail; highlight(rail);
+            checkSnap(rail, true); updatePiers();
         };
 
         function isConnected(rail) {
@@ -822,30 +737,19 @@
             if (!selectedObject) return;
             const t = selectedObject.userData.type;
             if (isConnected(selectedObject)) return showMessage("接続中は変更できません。");
+            
             const map = {
-                'curve_right':'curve_left', 'curve_left':'curve_right', 
+                'curve_right':'curve_left', 'curve_left':'curve_right',
                 'double_length_curve_right':'double_length_curve_left', 'double_length_curve_left':'double_length_curve_right',
-                's_curve_L':'s_curve_R', 's_curve_R':'s_curve_L',
-                's_curve_L_flip':'s_curve_R_flip', 's_curve_R_flip':'s_curve_L_flip',
-                'slope_up':'slope_down', 'slope_down':'slope_up',
-                'slope_up_flip':'slope_down_flip', 'slope_down_flip':'slope_up_flip',
+                's_curve_L':'s_curve_R', 's_curve_R':'s_curve_L', 's_curve_L_flip':'s_curve_R_flip', 's_curve_R_flip':'s_curve_L_flip',
+                'turnout_L_out':'turnout_R_out', 'turnout_R_out':'turnout_L_out', 'turnout_L_in':'turnout_R_in', 'turnout_R_in':'turnout_L_in',
                 'slope_curve_A':'slope_curve_B', 'slope_curve_B':'slope_curve_A',
-                'outer_curve_right':'outer_curve_left', 'outer_curve_left':'outer_curve_right', 
-                'turnout_L_out':'turnout_R_out', 'turnout_R_out':'turnout_L_out', 
-                'turnout_L_in':'turnout_R_in', 'turnout_R_in':'turnout_L_in', 
-                'double_point_L_out':'double_point_R_out', 'double_point_R_out':'double_point_L_out', 
-                'double_point_L_in':'double_point_R_in', 'double_point_R_in':'double_point_L_in', 
                 'double_curve_right':'double_curve_left', 'double_curve_left':'double_curve_right',
-                'double_crossover_L':'double_crossover_R', 'double_crossover_R':'double_crossover_L',
+                'outer_curve_right':'outer_curve_left', 'outer_curve_left':'outer_curve_right',
                 'double_turnout_L':'double_turnout_R', 'double_turnout_R':'double_turnout_L',
-                'double_turnout_L_flip':'double_turnout_R_flip', 'double_turnout_R_flip':'double_turnout_L_flip',
-                'fig8_F_RM':'fig8_F_LM', 'fig8_F_LM':'fig8_F_RM',
-                'fig8_M_RM':'fig8_M_LM', 'fig8_M_LM':'fig8_M_RM',
-                'y_point_F_RM':'y_point_F_LM', 'y_point_F_LM':'y_point_F_RM',
-                'y_point_M_RM':'y_point_M_LM', 'y_point_M_LM':'y_point_M_RM',
-                '3way_A':'3way_A_flip', '3way_A_flip':'3way_A',     
-                '3way_B':'3way_B_flip', '3way_B_flip':'3way_B'      
+                'double_turnout_L_flip':'double_turnout_R_flip', 'double_turnout_R_flip':'double_turnout_L_flip'
             };
+            
             if (map[t]) replaceSelectedRail(map[t]);
         };
 
@@ -854,67 +758,57 @@
             const t = selectedObject.userData.type;
             if (isConnected(selectedObject)) return showMessage("接続中は変更できません。");
             
-            if (t === 'quarter_straight') replaceSelectedRail('quarter_straight_MM');
-            else if (t === 'quarter_straight_MM') replaceSelectedRail('quarter_straight_FF');
-            else if (t === 'quarter_straight_FF') replaceSelectedRail('quarter_straight');
-            else if (t === 's_curve_L') replaceSelectedRail('s_curve_L_flip');
-            else if (t === 's_curve_L_flip') replaceSelectedRail('s_curve_L');
-            else if (t === 's_curve_R') replaceSelectedRail('s_curve_R_flip');
-            else if (t === 's_curve_R_flip') replaceSelectedRail('s_curve_R');
-            else if (t === 'slope_up') replaceSelectedRail('slope_up_flip');
-            else if (t === 'slope_up_flip') replaceSelectedRail('slope_up');
-            else if (t === 'slope_down') replaceSelectedRail('slope_down_flip');
-            else if (t === 'slope_down_flip') replaceSelectedRail('slope_down');
-            else if (t === 'slope_curve_A') replaceSelectedRail('slope_curve_B');
-            else if (t === 'slope_curve_B') replaceSelectedRail('slope_curve_A');
-            else if (t === 'fig8_F_RM') replaceSelectedRail('fig8_M_RM');
-            else if (t === 'fig8_M_RM') replaceSelectedRail('fig8_F_RM');
-            else if (t === 'fig8_F_LM') replaceSelectedRail('fig8_M_LM');
-            else if (t === 'fig8_M_LM') replaceSelectedRail('fig8_F_LM');
-            else if (t === 'y_point_F_RM') replaceSelectedRail('y_point_M_RM');
-            else if (t === 'y_point_M_RM') replaceSelectedRail('y_point_F_RM');
-            else if (t === 'y_point_F_LM') replaceSelectedRail('y_point_M_LM');
-            else if (t === 'y_point_M_LM') replaceSelectedRail('y_point_F_LM');
-            else if (t === '3way_A') replaceSelectedRail('3way_B');
-            else if (t === '3way_B') replaceSelectedRail('3way_A');
-            else if (t === '3way_A_flip') replaceSelectedRail('3way_B_flip');
-            else if (t === '3way_B_flip') replaceSelectedRail('3way_A_flip');
-            else if (t === 'double_turnout_L') replaceSelectedRail('double_turnout_L_flip');
-            else if (t === 'double_turnout_L_flip') replaceSelectedRail('double_turnout_L');
-            else if (t === 'double_turnout_R') replaceSelectedRail('double_turnout_R_flip');
-            else if (t === 'double_turnout_R_flip') replaceSelectedRail('double_turnout_R');
-            else if (t.endsWith('_out')) replaceSelectedRail(t.replace('_out', '_in'));
+            if (t === 'quarter_straight_MM') replaceSelectedRail('quarter_straight_FF');
+            else if (t === 'quarter_straight_FF') replaceSelectedRail('quarter_straight_MM');
+            else if (t === 'quarter_straight') replaceSelectedRail('quarter_straight_MM');
+            else if (t.includes('s_curve') || t.includes('slope_up') || t.includes('slope_down') || t.includes('3way') || t.includes('double_turnout')) {
+                if (t.includes('_flip')) replaceSelectedRail(t.replace('_flip', ''));
+                else replaceSelectedRail(t + '_flip');
+            } else if (t.endsWith('_out')) replaceSelectedRail(t.replace('_out', '_in'));
             else if (t.endsWith('_in')) replaceSelectedRail(t.replace('_in', '_out'));
         };
 
         function replaceSelectedRail(newType) {
-            const p = selectedObject.position.clone(), r = selectedObject.rotation.y; window.deleteRail(); 
-            const n = createRailObject(newType); n.position.copy(p); n.rotation.y = r;
-            scene.add(n); rails.push(n); selectedObject = n; highlight(n); checkSnap(n, true);
-            updatePiers();
+            const p = selectedObject.position.clone(), r = selectedObject.rotation.y, baseY = selectedObject.userData.baseY;
+            scene.remove(selectedObject);
+            const i = rails.indexOf(selectedObject);
+            if (i > -1) rails.splice(i, 1);
             
-            const group = railGroupMap[newType];
-            if (group) { railPrefs[group] = newType; }
+            const newRail = createRailObject(newType);
+            newRail.position.copy(p); newRail.rotation.y = r;
+            newRail.userData.baseY = baseY !== undefined ? baseY : p.y;
+            scene.add(newRail); rails.push(newRail);
+            selectedObject = newRail; highlight(newRail);
+            updatePiers();
         }
 
-        window.rotate = (dir) => { 
-            if (selectedObject && !isConnected(selectedObject)) { 
-                selectedObject.rotation.y += (Math.PI/4)*dir; checkSnap(selectedObject, true); updatePiers();
-            } else if (selectedObject) showMessage("接続中は回転できません。"); 
+        window.rotate = (steps) => {
+            if (!selectedObject) return showMessage("レールを選択してください。");
+            if (isConnected(selectedObject)) return showMessage("接続中は回転できません。");
+            selectedObject.rotation.y += steps * Math.PI / 4;
+            selectedObject.updateMatrixWorld();
+            checkSnap(selectedObject, false);
+            updatePiers();
         };
-        window.deleteRail = () => { 
-            if (selectedObject) { scene.remove(selectedObject); rails.splice(rails.indexOf(selectedObject), 1); selectedObject = null; highlight(null); updatePiers(); } 
-        };
-        
-        function highlight(obj) {
-            rails.forEach(r => r.traverse(c => { if (c.material && c.material.emissive) c.material.emissive.setHex(0); }));
-            if(obj) obj.traverse(c => { if (c.material && c.material.emissive) c.material.emissive.setHex(0x444444); });
-        }
-        function showMessage(text) { const el = document.getElementById('status'); el.innerText = text; setTimeout(() => { if(el.innerText === text) el.innerText = ""; }, 2000); }
 
-        window.saveToBrowser = () => { localStorage.setItem('3dRailSim', JSON.stringify(rails.map(r => ({ t: r.userData.type, x: r.position.x, y: r.position.y, z: r.position.z, ry: r.rotation.y })))); showMessage("💾 保存完了"); };
-        window.loadFromBrowser = () => { 
-            const s = localStorage.getItem('3dRailSim'); if (!s) return; 
+        window.deleteRail = () => {
+            if (selectedObject) {
+                scene.remove(selectedObject);
+                const i = rails.indexOf(selectedObject);
+                if (i > -1) rails.splice(i, 1);
+                selectedObject = null;
+                updatePiers();
+            }
+        };
+
+        window.saveToBrowser = () => {
+            localStorage.setItem('railLayout', JSON.stringify(rails.map(r => ({ t: r.userData.type, x: r.position.x, y: r.position.y, z: r.position.z, ry: r.rotation.y }))));
+            showMessage("💾 保存しました");
+        };
+
+        window.loadFromBrowser = () => {
+            const s = localStorage.getItem('railLayout');
+            if (!s) return showMessage("保存データがありません");
             rails.forEach(r => scene.remove(r)); rails.length = 0; 
             JSON.parse(s).forEach(d => { const r = createRailObject(d.t); r.position.set(d.x, d.y, d.z); r.rotation.y = d.ry; scene.add(r); rails.push(r); }); 
             updatePiers(); showMessage("📂 読込完了"); 
@@ -925,6 +819,7 @@
             a.href = URL.createObjectURL(new Blob([JSON.stringify(rails.map(r => ({ t: r.userData.type, x: r.position.x, y: r.position.y, z: r.position.z, ry: r.rotation.y })))], { type: 'application/json' }));
             a.download = 'layout.json'; a.click(); showMessage("📤 書出完了");
         };
+
         window.importJSON = (e) => {
             const f = e.target.files[0]; if (!f) return;
             const reader = new FileReader();
@@ -933,12 +828,22 @@
                     rails.forEach(r => scene.remove(r)); rails.length = 0; 
                     JSON.parse(ev.target.result).forEach(d => { const r = createRailObject(d.t); r.position.set(d.x, d.y, d.z); r.rotation.y = d.ry; scene.add(r); rails.push(r); });
                     updatePiers(); showMessage("📥 読込完了");
-                } catch (err) { showMessage("エラー: 不正なファイルです"); }
+                } catch(e) { showMessage("読込エラー"); }
             };
-            reader.readAsText(f); e.target.value = '';
+            reader.readAsText(f);
+            e.target.value = "";
         };
 
-        function animate() { requestAnimationFrame(animate); orbit.update(); renderer.render(scene, camera); }
+        function highlight(obj) {
+            rails.forEach(r => r.children.forEach(c => { if (c.material === matYellow) c.material = matNormal; }));
+            if (obj) obj.children.forEach(c => { if (c.material === matNormal) c.material = matYellow; });
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            orbit.update();
+            renderer.render(scene, camera);
+        }
     </script>
 </body>
 </html>
