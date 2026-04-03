@@ -127,19 +127,19 @@
         let selectedObject = null;
         let autoAlignEnabled = true;
         
-        // 基本寸法定義
+        // --- 基本寸法定義 ---
         const L = 10; 
         const W = 1.8;
         const SNAP_DIST = 2.5; 
         const OFFSET = 2.8;
         const H_UNIT = 3.0; 
 
-        // マテリアル定義
+        // --- マテリアル定義 ---
         const matNormal = new THREE.MeshPhongMaterial({ color: 0x0072bc });
         const matYellow = new THREE.MeshPhongMaterial({ color: 0xffd600 });
         const edgeMatNormal = new THREE.LineBasicMaterial({ color: 0x001133 });
 
-        // レールグループ管理（反転等で切り替えるため）
+        // --- レールグループ管理 ---
         const railPrefs = {
             'curve': 'curve_right',
             'double_length_curve': 'double_length_curve_right',
@@ -199,7 +199,7 @@
             dirLight.position.set(10, 20, 10);
             scene.add(dirLight);
 
-            // 橋脚グループと形状設定
+            // --- 橋脚ジオメトリの初期化 ---
             pierGroup = new THREE.Group();
             scene.add(pierGroup);
 
@@ -242,7 +242,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        // ドラッグ操作関連
+        // --- ドラッグ制御 ---
         function setupCustomDrag() {
             const raycaster = new THREE.Raycaster();
             const mouse = new THREE.Vector2();
@@ -254,6 +254,7 @@
                 mouse.x = (e.clientX / window.innerWidth) * 2 - 1; 
                 mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
                 raycaster.setFromCamera(mouse, camera);
+                // 線などの干渉を防ぐためMeshのみをフィルタ
                 const validHits = raycaster.intersectObjects(rails, true).filter(h => h.object.type === 'Mesh' && !h.object.userData.ignoreRaycast);
             
                 if (validHits.length > 0) {
@@ -315,427 +316,7 @@
             });
         }
 
-        // ====== 橋脚の更新（バグ修正箇所を含む） ======
-        function updatePiers() {
-            pierGroup.clear();
-            const spots = [];
-
-            rails.forEach(rail => {
-                const joints = getJointData(rail);
-                joints.forEach(j => {
-                    const qLevel = Math.round(j.pos.y / (H_UNIT / 4));
-                    if (qLevel > 0) {
-                        let found = spots.find(s => Math.hypot(s.x - j.pos.x, s.z - j.pos.z) < 0.5);
-                        if (found) {
-                            found.maxY = Math.max(found.maxY, j.pos.y);
-                            if (j.isSlopeTop) found.hasSlopeTop = true;
-                        } else {
-                            // 【修正】: 進行方向ベクトル(dir)からatan2を計算し、枕木と平行になるように橋脚の向きを回転させる
-                            let rotY = Math.atan2(j.dir.x, j.dir.z); 
-                            spots.push({ 
-                                x: j.pos.x, 
-                                z: j.pos.z, 
-                                maxY: j.pos.y, 
-                                rotY: rotY, 
-                                hasSlopeTop: j.isSlopeTop 
-                            });
-                        }
-                    }
-                });
-            });
-
-            spots.forEach(spot => {
-                let maxLevel = Math.round(spot.maxY / (H_UNIT / 4));
-                if (spot.hasSlopeTop) maxLevel -= 1;
-                if (maxLevel <= 0) return;
-
-                const numQuarter = maxLevel % 4; 
-                const numFull = Math.floor(maxLevel / 4); 
-                let currentY = 0;
-                
-                // ミニ橋脚
-                for (let i = 0; i < numQuarter; i++) {
-                    const mesh = new THREE.Mesh(miniPierGeo, matYellow);
-                    mesh.position.set(spot.x, currentY, spot.z);
-                    mesh.rotation.y = spot.rotY;
-                    const edges = new THREE.LineSegments(miniPierEdges, pierEdgeMat);
-                    mesh.add(edges);
-                    pierGroup.add(mesh);
-                    currentY += (H_UNIT / 4);
-                }
-                
-                // 通常橋脚
-                for (let i = 0; i < numFull; i++) {
-                    const mesh = new THREE.Mesh(pierGeo, matYellow);
-                    mesh.position.set(spot.x, currentY, spot.z);
-                    mesh.rotation.y = spot.rotY;
-                    const edges = new THREE.LineSegments(pierEdges, pierEdgeMat);
-                    mesh.add(edges);
-                    pierGroup.add(mesh);
-                    currentY += H_UNIT;
-                }
-            });
-        }
-
-        // ====== 全ジョイントデータ計算 ======
-        function getJointData(rail) {
-            rail.updateMatrixWorld();
-            const joints = [];
-            const m = rail.matrixWorld;
-            const q = rail.quaternion;
-            const type = rail.userData.type;
-
-            function addJoint(id, x, y, z, dx, dy, dz, gender, isSlopeTop = false) {
-                const pos = new THREE.Vector3(x, y, z).applyMatrix4(m);
-                const dir = new THREE.Vector3(dx, dy, dz).applyQuaternion(q).normalize();
-                joints.push({ id: id, pos: pos, dir: dir, gender: gender, isSlopeTop: isSlopeTop });
-            }
-
-            const H_Q = H_UNIT / 4;
-
-            // --- 基本レール ---
-            if (type === 'straight') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); 
-                addJoint(1, 0, 0, L, 0, 0, 1, 'M'); 
-            }
-            else if (type === 'straight_flip') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); 
-                addJoint(1, 0, 0, L, 0, 0, 1, 'F'); 
-            }
-            else if (type === 'double_length_straight') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); 
-                addJoint(1, 0, 0, 2*L, 0, 0, 1, 'M'); 
-            }
-            else if (type === 'half_straight') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); 
-                addJoint(1, 0, 0, L/2, 0, 0, 1, 'M'); 
-            }
-            else if (type === 'quarter_straight') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); 
-                addJoint(1, 0, 0, L/4, 0, 0, 1, 'M'); 
-            }
-            else if (type === 'quarter_straight_MM') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); 
-                addJoint(1, 0, 0, L/4, 0, 0, 1, 'M'); 
-            }
-            else if (type === 'quarter_straight_FF') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); 
-                addJoint(1, 0, 0, L/4, 0, 0, 1, 'F'); 
-            }
-
-            // --- 曲線レール ---
-            else if (type === 'curve_left') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); 
-                addJoint(1, L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M'); 
-            }
-            else if (type === 'curve_right') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); 
-                addJoint(1, -L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M'); 
-            }
-            else if (type === 'double_length_curve_left') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); 
-                addJoint(1, L, 0, L, 1, 0, 0, 'M'); 
-            }
-            else if (type === 'double_length_curve_right') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); 
-                addJoint(1, -L, 0, L, -1, 0, 0, 'M'); 
-            }
-
-            // --- S字・分岐 ---
-            else if (type === 's_curve_L') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); 
-                addJoint(1, OFFSET, 0, L, 0, 0, 1, 'M'); 
-            }
-            else if (type === 's_curve_R') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); 
-                addJoint(1, -OFFSET, 0, L, 0, 0, 1, 'M'); 
-            }
-            else if (type === 's_curve_L_flip') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); 
-                addJoint(1, OFFSET, 0, L, 0, 0, 1, 'F'); 
-            }
-            else if (type === 's_curve_R_flip') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); 
-                addJoint(1, -OFFSET, 0, L, 0, 0, 1, 'F'); 
-            }
-
-            // --- 坂レール ---
-            else if (type === 'slope_up') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); 
-                addJoint(1, 0, H_UNIT, 2*L, 0, 0, 1, 'F'); 
-            }
-            else if (type === 'slope_down') { 
-                addJoint(0, 0, H_UNIT, 0, 0, 0, -1, 'M'); 
-                addJoint(1, 0, 0, 2*L, 0, 0, 1, 'F'); 
-            }
-            else if (type === 'slope_up_flip') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); 
-                addJoint(1, 0, H_UNIT, 2*L, 0, 0, 1, 'M'); 
-            }
-            else if (type === 'slope_down_flip') { 
-                addJoint(0, 0, H_UNIT, 0, 0, 0, -1, 'F'); 
-                addJoint(1, 0, 0, 2*L, 0, 0, 1, 'M'); 
-            }
-            else if (type === 'slope_curve_A') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); 
-                addJoint(1, L * (1 - Math.cos(Math.PI/4)), H_Q, L * Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M', true); 
-            }
-            else if (type === 'slope_curve_B') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); 
-                addJoint(1, -L * (1 - Math.cos(Math.PI/4)), H_Q, L * Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'F', true); 
-            }
-
-            // --- 複線直線 ---
-            else if (type === 'double_straight' || type === 'double_crossover_L' || type === 'double_crossover_R') {
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); 
-                addJoint(1, 0, 0, L, 0, 0, 1, 'M');
-                addJoint(2, -OFFSET, 0, 0, 0, 0, -1, 'F'); 
-                addJoint(3, -OFFSET, 0, L, 0, 0, 1, 'M');
-            }
-
-            // --- 【修正】複線曲線レール寸法統一 ---
-            else if (type === 'double_curve_left') {
-                // 左カーブ（中心: x=L）
-                // Track 0 (x=0) 半径: L
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F');
-                addJoint(1, L - L*Math.cos(Math.PI/4), 0, L*Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M');
-                // Track 1 (x=-OFFSET) 半径: L+OFFSET
-                addJoint(2, -OFFSET, 0, 0, 0, 0, -1, 'F');
-                addJoint(3, L - (L+OFFSET)*Math.cos(Math.PI/4), 0, (L+OFFSET)*Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M');
-            }
-            else if (type === 'double_curve_right') {
-                // 右カーブ（中心: x=-(L+OFFSET)）※左カーブと半径差を完全に対称化
-                // Track 0 (x=0) 半径: L+OFFSET
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F');
-                addJoint(1, -(L+OFFSET) + (L+OFFSET)*Math.cos(Math.PI/4), 0, (L+OFFSET)*Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M');
-                // Track 1 (x=-OFFSET) 半径: L
-                addJoint(2, -OFFSET, 0, 0, 0, 0, -1, 'F');
-                addJoint(3, -(L+OFFSET) + L*Math.cos(Math.PI/4), 0, L*Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M');
-            }
-            
-            // --- 複外曲線 ---
-            else if (type === 'outer_curve_left') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); 
-                addJoint(1, (L+OFFSET) * (1 - Math.cos(Math.PI/4)), 0, (L+OFFSET) * Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M'); 
-            }
-            else if (type === 'outer_curve_right') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); 
-                addJoint(1, -(L+OFFSET) * (1 - Math.cos(Math.PI/4)), 0, (L+OFFSET) * Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M'); 
-            }
-
-            // --- 【修正】複線ターンアウトレールの寸法統一 ---
-            else if (type === 'double_turnout_L') {
-                // 左（+X方向への分岐とする場合、左右対称にするためZ軸オフセットを揃える）
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); 
-                addJoint(1, 0, 0, L, 0, 0, 1, 'M');
-                addJoint(2, -OFFSET, 0, 0, 0, 0, -1, 'F'); 
-                addJoint(3, -OFFSET, 0, L, 0, 0, 1, 'M');
-                // 分岐先（直進方向から距離 L の位置へ）
-                addJoint(4, L, 0, L, 1, 0, 0, 'M'); 
-                addJoint(5, L, 0, L+OFFSET, 1, 0, 0, 'M');
-            }
-            else if (type === 'double_turnout_R') {
-                // 右（-X方向への分岐。L側の完全に反転した座標）
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); 
-                addJoint(1, 0, 0, L, 0, 0, 1, 'M');
-                addJoint(2, -OFFSET, 0, 0, 0, 0, -1, 'F'); 
-                addJoint(3, -OFFSET, 0, L, 0, 0, 1, 'M');
-                // 分岐先
-                addJoint(4, -L, 0, L, -1, 0, 0, 'M'); 
-                addJoint(5, -L, 0, L+OFFSET, -1, 0, 0, 'M');
-            }
-            // 複線ターンアウトレール（ジョイント反転）
-            else if (type === 'double_turnout_L_flip') {
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); addJoint(1, 0, 0, L, 0, 0, 1, 'F');
-                addJoint(2, -OFFSET, 0, 0, 0, 0, -1, 'M'); addJoint(3, -OFFSET, 0, L, 0, 0, 1, 'F');
-                addJoint(4, L, 0, L, 1, 0, 0, 'F'); addJoint(5, L, 0, L+OFFSET, 1, 0, 0, 'F');
-            }
-            else if (type === 'double_turnout_R_flip') {
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); addJoint(1, 0, 0, L, 0, 0, 1, 'F');
-                addJoint(2, -OFFSET, 0, 0, 0, 0, -1, 'M'); addJoint(3, -OFFSET, 0, L, 0, 0, 1, 'F');
-                addJoint(4, -L, 0, L, -1, 0, 0, 'F'); addJoint(5, -L, 0, L+OFFSET, -1, 0, 0, 'F');
-            }
-
-            // --- その他特殊レール ---
-            else if (type === 'turnout_L_out') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); 
-                addJoint(1, 0, 0, L, 0, 0, 1, 'M'); 
-                addJoint(2, L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M'); 
-            }
-            else if (type === 'turnout_R_out') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); 
-                addJoint(1, 0, 0, L, 0, 0, 1, 'M'); 
-                addJoint(2, -L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M'); 
-            }
-            else if (type === 'turnout_L_in') { 
-                addJoint(1, 0, 0, 0, 0, 0, -1, 'M'); 
-                addJoint(0, 0, 0, L, 0, 0, 1, 'F'); 
-                addJoint(2, L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'F'); 
-            }
-            else if (type === 'turnout_R_in') { 
-                addJoint(1, 0, 0, 0, 0, 0, -1, 'M'); 
-                addJoint(0, 0, 0, L, 0, 0, 1, 'F'); 
-                addJoint(2, -L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'F'); 
-            }
-            else if (type === '3way_A') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); 
-                addJoint(1, 0, 0, L, 0, 0, 1, 'F'); 
-                addJoint(2, L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M'); 
-                addJoint(3, -L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'F'); 
-            }
-            else if (type === '3way_B') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); 
-                addJoint(1, 0, 0, L, 0, 0, 1, 'M'); 
-                addJoint(2, L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'F'); 
-                addJoint(3, -L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M'); 
-            }
-            else if (type === '3way_A_flip') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); 
-                addJoint(1, 0, 0, L, 0, 0, 1, 'F'); 
-                addJoint(2, L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'F'); 
-                addJoint(3, -L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M'); 
-            }
-            else if (type === '3way_B_flip') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); 
-                addJoint(1, 0, 0, L, 0, 0, 1, 'M'); 
-                addJoint(2, L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M'); 
-                addJoint(3, -L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'F'); 
-            }
-            else if (type === 'fig8_F_RM') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); 
-                addJoint(1, -L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M'); 
-                addJoint(2, L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'F'); 
-            }
-            else if (type === 'fig8_M_RM') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); 
-                addJoint(1, -L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M'); 
-                addJoint(2, L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'F'); 
-            }
-            else if (type === 'fig8_F_LM') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); 
-                addJoint(1, -L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'F'); 
-                addJoint(2, L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M'); 
-            }
-            else if (type === 'fig8_M_LM') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); 
-                addJoint(1, -L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'F'); 
-                addJoint(2, L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M'); 
-            }
-            else if (type === 'y_point_F_RM') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, -2.5, 0, L, 0, 0, 1, 'M'); addJoint(2, 2.5, 0, L, 0, 0, 1, 'F'); 
-            }
-            else if (type === 'y_point_M_RM') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); addJoint(1, -2.5, 0, L, 0, 0, 1, 'M'); addJoint(2, 2.5, 0, L, 0, 0, 1, 'F'); 
-            }
-            else if (type === 'y_point_F_LM') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, -2.5, 0, L, 0, 0, 1, 'F'); addJoint(2, 2.5, 0, L, 0, 0, 1, 'M'); 
-            }
-            else if (type === 'y_point_M_LM') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); addJoint(1, -2.5, 0, L, 0, 0, 1, 'F'); addJoint(2, 2.5, 0, L, 0, 0, 1, 'M'); 
-            }
-            else if (type === 'double_point_L_out') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, 0, 0, L, 0, 0, 1, 'M'); addJoint(2, OFFSET, 0, L, 0, 0, 1, 'M'); 
-            }
-            else if (type === 'double_point_R_out') { 
-                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, 0, 0, L, 0, 0, 1, 'M'); addJoint(2, -OFFSET, 0, L, 0, 0, 1, 'M'); 
-            }
-            else if (type === 'double_point_L_in') { 
-                addJoint(1, 0, 0, 0, 0, 0, -1, 'M'); addJoint(0, 0, 0, L, 0, 0, 1, 'F'); addJoint(2, OFFSET, 0, L, 0, 0, 1, 'F'); 
-            }
-            else if (type === 'double_point_R_in') { 
-                addJoint(1, 0, 0, 0, 0, 0, -1, 'M'); addJoint(0, 0, 0, L, 0, 0, 1, 'F'); addJoint(2, -OFFSET, 0, L, 0, 0, 1, 'F'); 
-            }
-
-            return joints;
-        }
-
-        // スナップ判定と自動回転
-        function checkSnap(dragged, skipAutoAlign = false) {
-            dragged.updateMatrixWorld();
-            let myJoints = getJointData(dragged);
-            const occupied = [];
-            
-            rails.forEach(r => { 
-                if (r !== dragged) {
-                    getJointData(r).forEach(j => occupied.push({ rail: r, pos: j.pos, dir: j.dir, gender: j.gender }));
-                }
-            });
-
-            const type = dragged.userData.type;
-            const isBranch = type.includes('turnout') || type.includes('point') || type.includes('fig8') || type.includes('3way') || type.startsWith('double_crossover_');
-
-            if (autoAlignEnabled && !isBranch && !skipAutoAlign) {
-                let aligned = false;
-                for (let mj of myJoints) {
-                    for (let occ of occupied) {
-                        if (mj.pos.distanceTo(occ.pos) < SNAP_DIST * 1.1 && mj.gender !== occ.gender) {
-                            const overlapping = occupied.filter(o => occ.pos.distanceTo(o.pos) < 0.1);
-                            if (overlapping.length >= 2) continue;
-                            
-                            const targetAngle = Math.atan2(-occ.dir.x, -occ.dir.z);
-                            const currentAngle = Math.atan2(mj.dir.x, mj.dir.z);
-                            let diff = targetAngle - currentAngle;
-                            diff = Math.atan2(Math.sin(diff), Math.cos(diff));
-                            dragged.rotation.y += diff;
-                            dragged.updateMatrixWorld();
-                            myJoints = getJointData(dragged);
-                            aligned = true;
-                            break;
-                        }
-                    }
-                    if (aligned) break;
-                }
-                if (!aligned && dragged.userData.baseRotation !== undefined) {
-                    dragged.rotation.y = dragged.userData.baseRotation;
-                    dragged.updateMatrixWorld();
-                    myJoints = getJointData(dragged);
-                }
-            }
-
-            for (let mj of myJoints) {
-                for (let occ of occupied) {
-                    if (mj.pos.distanceTo(occ.pos) < SNAP_DIST && mj.dir.dot(occ.dir) < -0.9 && mj.gender !== occ.gender) {
-                        const overlapping = occupied.filter(o => occ.pos.distanceTo(o.pos) < 0.1);
-                        if (overlapping.length >= 2) continue;
-                        
-                        const tempPos = dragged.position.clone().add(new THREE.Vector3().subVectors(occ.pos, mj.pos));
-                        dragged.position.copy(tempPos);
-                        dragged.updateMatrixWorld();
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-
-        function isConnected(rail) {
-            const myJoints = getJointData(rail);
-            const otherJoints = [];
-            rails.forEach(r => { 
-                if (r !== rail) {
-                    getJointData(r).forEach(j => otherJoints.push(j.pos)); 
-                }
-            });
-            return myJoints.some(mj => otherJoints.some(oj => mj.pos.distanceTo(oj) < 0.1));
-        }
-
-        function highlight(obj) {
-            rails.forEach(r => {
-                r.traverse(child => {
-                    if (child.isMesh && !child.userData.ignoreRaycast) {
-                        child.material = (r === obj) ? new THREE.MeshPhongMaterial({ color: 0xff5252 }) : matNormal;
-                    }
-                });
-            });
-        }
-
-        function showMessage(msg) {
-            const st = document.getElementById('status');
-            st.innerText = msg;
-            setTimeout(() => { if (st.innerText === msg) st.innerText = ""; }, 3000);
-        }
-
-        // ====== UI連携アクション ======
+        // --- UIアクション ---
         window.toggleAutoAlign = () => {
             autoAlignEnabled = !autoAlignEnabled;
             const btn = document.getElementById('autoAlignBtn');
@@ -849,8 +430,264 @@
             }
         };
 
-        // ====== 3Dオブジェクト生成ロジック ======
-        // 省略せずすべての条件と描画処理を展開
+        function highlight(obj) {
+            rails.forEach(r => {
+                r.traverse(child => {
+                    if (child.isMesh && !child.userData.ignoreRaycast) {
+                        child.material = (r === obj) ? new THREE.MeshPhongMaterial({ color: 0xff5252 }) : matNormal;
+                    }
+                });
+            });
+        }
+
+        function showMessage(msg) {
+            const st = document.getElementById('status');
+            st.innerText = msg;
+            setTimeout(() => { if (st.innerText === msg) st.innerText = ""; }, 3000);
+        }
+
+        // --- 橋脚計算（修正箇所） ---
+        function updatePiers() {
+            pierGroup.clear();
+            const spots = [];
+
+            rails.forEach(rail => {
+                const joints = getJointData(rail);
+                joints.forEach(j => {
+                    const qLevel = Math.round(j.pos.y / (H_UNIT / 4));
+                    if (qLevel > 0) {
+                        let found = spots.find(s => Math.hypot(s.x - j.pos.x, s.z - j.pos.z) < 0.5);
+                        if (found) {
+                            found.maxY = Math.max(found.maxY, j.pos.y);
+                            if (j.isSlopeTop) found.hasSlopeTop = true;
+                        } else {
+                            // 【完全修正】進行方向ベクトルから角度を算出し、枕木と平行（レール進行方向と垂直）にする
+                            let rotY = Math.atan2(j.dir.x, j.dir.z); 
+                            spots.push({ 
+                                x: j.pos.x, 
+                                z: j.pos.z, 
+                                maxY: j.pos.y, 
+                                rotY: rotY, 
+                                hasSlopeTop: j.isSlopeTop 
+                            });
+                        }
+                    }
+                });
+            });
+
+            spots.forEach(spot => {
+                let maxLevel = Math.round(spot.maxY / (H_UNIT / 4));
+                if (spot.hasSlopeTop) maxLevel -= 1;
+                if (maxLevel <= 0) return;
+
+                const numQuarter = maxLevel % 4; 
+                const numFull = Math.floor(maxLevel / 4); 
+                let currentY = 0;
+                
+                for (let i = 0; i < numQuarter; i++) {
+                    const mesh = new THREE.Mesh(miniPierGeo, matYellow);
+                    mesh.position.set(spot.x, currentY, spot.z);
+                    mesh.rotation.y = spot.rotY;
+                    const edges = new THREE.LineSegments(miniPierEdges, pierEdgeMat);
+                    mesh.add(edges);
+                    pierGroup.add(mesh);
+                    currentY += (H_UNIT / 4);
+                }
+                
+                for (let i = 0; i < numFull; i++) {
+                    const mesh = new THREE.Mesh(pierGeo, matYellow);
+                    mesh.position.set(spot.x, currentY, spot.z);
+                    mesh.rotation.y = spot.rotY;
+                    const edges = new THREE.LineSegments(pierEdges, pierEdgeMat);
+                    mesh.add(edges);
+                    pierGroup.add(mesh);
+                    currentY += H_UNIT;
+                }
+            });
+        }
+
+        // --- 全ジョイントの正確な定義（修正箇所） ---
+        function getJointData(rail) {
+            rail.updateMatrixWorld();
+            const joints = [];
+            const m = rail.matrixWorld;
+            const q = rail.quaternion;
+            const type = rail.userData.type;
+
+            function addJoint(id, x, y, z, dx, dy, dz, gender, isSlopeTop = false) {
+                const pos = new THREE.Vector3(x, y, z).applyMatrix4(m);
+                const dir = new THREE.Vector3(dx, dy, dz).applyQuaternion(q).normalize();
+                joints.push({ id: id, pos: pos, dir: dir, gender: gender, isSlopeTop: isSlopeTop });
+            }
+
+            const H_Q = H_UNIT / 4;
+
+            if (type === 'straight') { addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, 0, 0, L, 0, 0, 1, 'M'); }
+            else if (type === 'straight_flip') { addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); addJoint(1, 0, 0, L, 0, 0, 1, 'F'); }
+            else if (type === 'double_length_straight') { addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, 0, 0, 2*L, 0, 0, 1, 'M'); }
+            else if (type === 'half_straight') { addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, 0, 0, L/2, 0, 0, 1, 'M'); }
+            else if (type === 'quarter_straight') { addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, 0, 0, L/4, 0, 0, 1, 'M'); }
+            else if (type === 'quarter_straight_MM') { addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); addJoint(1, 0, 0, L/4, 0, 0, 1, 'M'); }
+            else if (type === 'quarter_straight_FF') { addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, 0, 0, L/4, 0, 0, 1, 'F'); }
+            
+            else if (type === 'curve_left') { addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M'); }
+            else if (type === 'curve_right') { addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, -L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M'); }
+            else if (type === 'double_length_curve_left') { addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, L, 0, L, 1, 0, 0, 'M'); }
+            else if (type === 'double_length_curve_right') { addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, -L, 0, L, -1, 0, 0, 'M'); }
+            else if (type === 'outer_curve_left') { addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, (L+OFFSET) * (1 - Math.cos(Math.PI/4)), 0, (L+OFFSET) * Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M'); }
+            else if (type === 'outer_curve_right') { addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, -(L+OFFSET) * (1 - Math.cos(Math.PI/4)), 0, (L+OFFSET) * Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M'); }
+
+            else if (type === 's_curve_L') { addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, OFFSET, 0, L, 0, 0, 1, 'M'); }
+            else if (type === 's_curve_R') { addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, -OFFSET, 0, L, 0, 0, 1, 'M'); }
+            else if (type === 's_curve_L_flip') { addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); addJoint(1, OFFSET, 0, L, 0, 0, 1, 'F'); }
+            else if (type === 's_curve_R_flip') { addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); addJoint(1, -OFFSET, 0, L, 0, 0, 1, 'F'); }
+
+            else if (type === 'slope_up') { addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); addJoint(1, 0, H_UNIT, 2*L, 0, 0, 1, 'F'); }
+            else if (type === 'slope_down') { addJoint(0, 0, H_UNIT, 0, 0, 0, -1, 'M'); addJoint(1, 0, 0, 2*L, 0, 0, 1, 'F'); }
+            else if (type === 'slope_up_flip') { addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, 0, H_UNIT, 2*L, 0, 0, 1, 'M'); }
+            else if (type === 'slope_down_flip') { addJoint(0, 0, H_UNIT, 0, 0, 0, -1, 'F'); addJoint(1, 0, 0, 2*L, 0, 0, 1, 'M'); }
+            else if (type === 'slope_curve_A') { addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, L * (1 - Math.cos(Math.PI/4)), H_Q, L * Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M', true); }
+            else if (type === 'slope_curve_B') { addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); addJoint(1, -L * (1 - Math.cos(Math.PI/4)), H_Q, L * Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'F', true); }
+
+            else if (type === 'double_straight' || type === 'double_crossover_L' || type === 'double_crossover_R') {
+                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, 0, 0, L, 0, 0, 1, 'M');
+                addJoint(2, -OFFSET, 0, 0, 0, 0, -1, 'F'); addJoint(3, -OFFSET, 0, L, 0, 0, 1, 'M');
+            }
+
+            // 【完全修正】複線曲線レール寸法統一
+            else if (type === 'double_curve_left') {
+                addJoint(0, 0, 0, 0, 0, 0, -1, 'F');
+                addJoint(1, L - L*Math.cos(Math.PI/4), 0, L*Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M');
+                addJoint(2, -OFFSET, 0, 0, 0, 0, -1, 'F');
+                addJoint(3, -OFFSET + (L+OFFSET)*(1-Math.cos(Math.PI/4)), 0, (L+OFFSET)*Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M');
+            }
+            else if (type === 'double_curve_right') {
+                addJoint(0, 0, 0, 0, 0, 0, -1, 'F');
+                addJoint(1, -(L+OFFSET) + (L+OFFSET)*Math.cos(Math.PI/4), 0, (L+OFFSET)*Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M');
+                addJoint(2, -OFFSET, 0, 0, 0, 0, -1, 'F');
+                addJoint(3, -(L+OFFSET) + L*Math.cos(Math.PI/4), 0, L*Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M');
+            }
+            
+            // 【完全修正】複線ターンアウトレール（左右で完全対称化・ギャップ解消）
+            else if (type === 'double_turnout_L') {
+                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, 0, 0, L, 0, 0, 1, 'M');
+                addJoint(2, -OFFSET, 0, 0, 0, 0, -1, 'F'); addJoint(3, -OFFSET, 0, L+OFFSET, 0, 0, 1, 'M'); // 外輪はL+OFFSETまで直進
+                addJoint(4, L, 0, L, 1, 0, 0, 'M'); addJoint(5, L, 0, L+OFFSET, 1, 0, 0, 'M');
+            }
+            else if (type === 'double_turnout_R') {
+                addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, 0, 0, L+OFFSET, 0, 0, 1, 'M'); // 外輪はL+OFFSETまで直進
+                addJoint(2, -OFFSET, 0, 0, 0, 0, -1, 'F'); addJoint(3, -OFFSET, 0, L, 0, 0, 1, 'M');
+                addJoint(4, -L, 0, L+OFFSET, -1, 0, 0, 'M'); addJoint(5, -L, 0, L, -1, 0, 0, 'M');
+            }
+            else if (type === 'double_turnout_L_flip') {
+                addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); addJoint(1, 0, 0, L, 0, 0, 1, 'F');
+                addJoint(2, -OFFSET, 0, 0, 0, 0, -1, 'M'); addJoint(3, -OFFSET, 0, L+OFFSET, 0, 0, 1, 'F');
+                addJoint(4, L, 0, L, 1, 0, 0, 'F'); addJoint(5, L, 0, L+OFFSET, 1, 0, 0, 'F');
+            }
+            else if (type === 'double_turnout_R_flip') {
+                addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); addJoint(1, 0, 0, L+OFFSET, 0, 0, 1, 'F');
+                addJoint(2, -OFFSET, 0, 0, 0, 0, -1, 'M'); addJoint(3, -OFFSET, 0, L, 0, 0, 1, 'F');
+                addJoint(4, -L, 0, L+OFFSET, -1, 0, 0, 'F'); addJoint(5, -L, 0, L, -1, 0, 0, 'F');
+            }
+
+            else if (type === 'turnout_L_out') { addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, 0, 0, L, 0, 0, 1, 'M'); addJoint(2, L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M'); }
+            else if (type === 'turnout_R_out') { addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, 0, 0, L, 0, 0, 1, 'M'); addJoint(2, -L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M'); }
+            else if (type === 'turnout_L_in') { addJoint(1, 0, 0, 0, 0, 0, -1, 'M'); addJoint(0, 0, 0, L, 0, 0, 1, 'F'); addJoint(2, L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'F'); }
+            else if (type === 'turnout_R_in') { addJoint(1, 0, 0, 0, 0, 0, -1, 'M'); addJoint(0, 0, 0, L, 0, 0, 1, 'F'); addJoint(2, -L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'F'); }
+            
+            else if (type === '3way_A') { addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); addJoint(1, 0, 0, L, 0, 0, 1, 'F'); addJoint(2, L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M'); addJoint(3, -L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'F'); }
+            else if (type === '3way_B') { addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, 0, 0, L, 0, 0, 1, 'M'); addJoint(2, L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'F'); addJoint(3, -L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M'); }
+            else if (type === '3way_A_flip') { addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); addJoint(1, 0, 0, L, 0, 0, 1, 'F'); addJoint(2, L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'F'); addJoint(3, -L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M'); }
+            else if (type === '3way_B_flip') { addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, 0, 0, L, 0, 0, 1, 'M'); addJoint(2, L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M'); addJoint(3, -L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'F'); }
+            
+            else if (type === 'fig8_F_RM') { addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, -L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M'); addJoint(2, L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'F'); }
+            else if (type === 'fig8_M_RM') { addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); addJoint(1, -L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M'); addJoint(2, L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'F'); }
+            else if (type === 'fig8_F_LM') { addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, -L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'F'); addJoint(2, L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M'); }
+            else if (type === 'fig8_M_LM') { addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); addJoint(1, -L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), -Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'F'); addJoint(2, L * (1 - Math.cos(Math.PI/4)), 0, L * Math.sin(Math.PI/4), Math.sin(Math.PI/4), 0, Math.cos(Math.PI/4), 'M'); }
+            
+            else if (type === 'y_point_F_RM') { addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, -2.5, 0, L, 0, 0, 1, 'M'); addJoint(2, 2.5, 0, L, 0, 0, 1, 'F'); }
+            else if (type === 'y_point_M_RM') { addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); addJoint(1, -2.5, 0, L, 0, 0, 1, 'M'); addJoint(2, 2.5, 0, L, 0, 0, 1, 'F'); }
+            else if (type === 'y_point_F_LM') { addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, -2.5, 0, L, 0, 0, 1, 'F'); addJoint(2, 2.5, 0, L, 0, 0, 1, 'M'); }
+            else if (type === 'y_point_M_LM') { addJoint(0, 0, 0, 0, 0, 0, -1, 'M'); addJoint(1, -2.5, 0, L, 0, 0, 1, 'F'); addJoint(2, 2.5, 0, L, 0, 0, 1, 'M'); }
+            
+            else if (type === 'double_point_L_out') { addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, 0, 0, L, 0, 0, 1, 'M'); addJoint(2, OFFSET, 0, L, 0, 0, 1, 'M'); }
+            else if (type === 'double_point_R_out') { addJoint(0, 0, 0, 0, 0, 0, -1, 'F'); addJoint(1, 0, 0, L, 0, 0, 1, 'M'); addJoint(2, -OFFSET, 0, L, 0, 0, 1, 'M'); }
+            else if (type === 'double_point_L_in') { addJoint(1, 0, 0, 0, 0, 0, -1, 'M'); addJoint(0, 0, 0, L, 0, 0, 1, 'F'); addJoint(2, OFFSET, 0, L, 0, 0, 1, 'F'); }
+            else if (type === 'double_point_R_in') { addJoint(1, 0, 0, 0, 0, 0, -1, 'M'); addJoint(0, 0, 0, L, 0, 0, 1, 'F'); addJoint(2, -OFFSET, 0, L, 0, 0, 1, 'F'); }
+
+            return joints;
+        }
+
+        function checkSnap(dragged, skipAutoAlign = false) {
+            dragged.updateMatrixWorld();
+            let myJoints = getJointData(dragged);
+            const occupied = [];
+            
+            rails.forEach(r => { 
+                if (r !== dragged) {
+                    getJointData(r).forEach(j => occupied.push({ rail: r, pos: j.pos, dir: j.dir, gender: j.gender }));
+                }
+            });
+
+            const type = dragged.userData.type;
+            const isBranch = type.includes('turnout') || type.includes('point') || type.includes('fig8') || type.includes('3way') || type.startsWith('double_crossover_');
+
+            if (autoAlignEnabled && !isBranch && !skipAutoAlign) {
+                let aligned = false;
+                for (let mj of myJoints) {
+                    for (let occ of occupied) {
+                        if (mj.pos.distanceTo(occ.pos) < SNAP_DIST * 1.1 && mj.gender !== occ.gender) {
+                            const overlapping = occupied.filter(o => occ.pos.distanceTo(o.pos) < 0.1);
+                            if (overlapping.length >= 2) continue;
+                            
+                            const targetAngle = Math.atan2(-occ.dir.x, -occ.dir.z);
+                            const currentAngle = Math.atan2(mj.dir.x, mj.dir.z);
+                            let diff = targetAngle - currentAngle;
+                            diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+                            dragged.rotation.y += diff;
+                            dragged.updateMatrixWorld();
+                            myJoints = getJointData(dragged);
+                            aligned = true;
+                            break;
+                        }
+                    }
+                    if (aligned) break;
+                }
+                if (!aligned && dragged.userData.baseRotation !== undefined) {
+                    dragged.rotation.y = dragged.userData.baseRotation;
+                    dragged.updateMatrixWorld();
+                    myJoints = getJointData(dragged);
+                }
+            }
+
+            for (let mj of myJoints) {
+                for (let occ of occupied) {
+                    if (mj.pos.distanceTo(occ.pos) < SNAP_DIST && mj.dir.dot(occ.dir) < -0.9 && mj.gender !== occ.gender) {
+                        const overlapping = occupied.filter(o => occ.pos.distanceTo(o.pos) < 0.1);
+                        if (overlapping.length >= 2) continue;
+                        
+                        const tempPos = dragged.position.clone().add(new THREE.Vector3().subVectors(occ.pos, mj.pos));
+                        dragged.position.copy(tempPos);
+                        dragged.updateMatrixWorld();
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function isConnected(rail) {
+            const myJoints = getJointData(rail);
+            const otherJoints = [];
+            rails.forEach(r => { 
+                if (r !== rail) {
+                    getJointData(r).forEach(j => otherJoints.push(j.pos)); 
+                }
+            });
+            return myJoints.some(mj => otherJoints.some(oj => mj.pos.distanceTo(oj) < 0.1));
+        }
+
+        // --- 全レールの完全な描画関数（修正箇所） ---
         function createRailObject(type) {
             const group = new THREE.Group();
             group.userData.type = type;
@@ -863,6 +700,7 @@
                 group.add(m);
                 const eg = new THREE.EdgesGeometry(g);
                 const line = new THREE.LineSegments(eg, edgeMatNormal);
+                line.userData.ignoreRaycast = true; // レイキャスト回避
                 m.add(line);
             }
 
@@ -882,135 +720,64 @@
                 group.add(mesh);
             }
 
-            // --- 直線系 ---
-            if (type === 'straight' || type === 'straight_flip') {
-                addBeam(0, L/2, L);
-            }
-            else if (type === 'double_length_straight') {
-                addBeam(0, L, 2*L);
-            }
-            else if (type === 'half_straight') {
-                addBeam(0, L/4, L/2);
-            }
-            else if (type.startsWith('quarter_straight')) {
-                addBeam(0, L/8, L/4);
-            }
+            if (type === 'straight' || type === 'straight_flip') { addBeam(0, L/2, L); }
+            else if (type === 'double_length_straight') { addBeam(0, L, 2*L); }
+            else if (type === 'half_straight') { addBeam(0, L/4, L/2); }
+            else if (type.startsWith('quarter_straight')) { addBeam(0, L/8, L/4); }
 
-            // --- 曲線系 ---
-            else if (type === 'curve_left') {
-                addCurveBeam(L, Math.PI, 3*Math.PI/4, L);
-            }
-            else if (type === 'curve_right') {
-                addCurveBeam(L, 0, -Math.PI/4, -L);
-            }
-            else if (type === 'double_length_curve_left') {
-                addCurveBeam(L, Math.PI, Math.PI/2, L);
-            }
-            else if (type === 'double_length_curve_right') {
-                addCurveBeam(L, 0, Math.PI/2, -L);
-            }
-            else if (type === 'outer_curve_left') {
-                addCurveBeam(L+OFFSET, Math.PI, 3*Math.PI/4, L+OFFSET);
-            }
-            else if (type === 'outer_curve_right') {
-                addCurveBeam(L+OFFSET, 0, -Math.PI/4, -(L+OFFSET));
-            }
+            else if (type === 'curve_left') { addCurveBeam(L, Math.PI, 3*Math.PI/4, L); }
+            else if (type === 'curve_right') { addCurveBeam(L, 0, -Math.PI/4, -L); }
+            else if (type === 'double_length_curve_left') { addCurveBeam(L, Math.PI, Math.PI/2, L); }
+            else if (type === 'double_length_curve_right') { addCurveBeam(L, 0, Math.PI/2, -L); }
+            else if (type === 'outer_curve_left') { addCurveBeam(L+OFFSET, Math.PI, 3*Math.PI/4, L+OFFSET); }
+            else if (type === 'outer_curve_right') { addCurveBeam(L+OFFSET, 0, -Math.PI/4, -(L+OFFSET)); }
 
-            // --- 特殊曲線 ---
-            else if (type === 's_curve_L' || type === 's_curve_L_flip') {
-                addCurveBeam(L, Math.PI, Math.PI-0.3, L);
-                addCurveBeam(L, -0.3, 0, -L+OFFSET);
-            }
-            else if (type === 's_curve_R' || type === 's_curve_R_flip') {
-                addCurveBeam(L, 0, 0.3, -L);
-                addCurveBeam(L, Math.PI+0.3, Math.PI, L-OFFSET);
-            }
-            else if (type.startsWith('fig8')) {
-                addCurveBeam(L, 0, -Math.PI/4, -L);
-                addCurveBeam(L, Math.PI, 3*Math.PI/4, L);
-            }
-            else if (type.startsWith('slope_curve')) {
-                addCurveBeam(L, Math.PI, 3*Math.PI/4, L);
-            }
+            else if (type === 's_curve_L' || type === 's_curve_L_flip') { addCurveBeam(L, Math.PI, Math.PI-0.3, L); addCurveBeam(L, -0.3, 0, -L+OFFSET); }
+            else if (type === 's_curve_R' || type === 's_curve_R_flip') { addCurveBeam(L, 0, 0.3, -L); addCurveBeam(L, Math.PI+0.3, Math.PI, L-OFFSET); }
+            else if (type.startsWith('fig8')) { addCurveBeam(L, 0, -Math.PI/4, -L); addCurveBeam(L, Math.PI, 3*Math.PI/4, L); }
+            else if (type.startsWith('slope_curve')) { addCurveBeam(L, Math.PI, 3*Math.PI/4, L); }
 
-            // --- 分岐系 ---
-            else if (type.startsWith('turnout_L')) {
-                addBeam(0, L/2, L);
-                addCurveBeam(L, Math.PI, 3*Math.PI/4, L);
-            }
-            else if (type.startsWith('turnout_R')) {
-                addBeam(0, L/2, L);
-                addCurveBeam(L, 0, -Math.PI/4, -L);
-            }
-            else if (type.startsWith('y_point')) {
-                addBeam(-1.25, L/2, L, -0.1);
-                addBeam(1.25, L/2, L, 0.1);
-            }
-            else if (type.startsWith('3way')) {
-                addBeam(0, L/2, L);
-                addCurveBeam(L, Math.PI, 3*Math.PI/4, L);
-                addCurveBeam(L, 0, -Math.PI/4, -L);
-            }
-            else if (type.startsWith('slope')) {
-                addBeam(0, L, 2*L);
-            }
+            else if (type.startsWith('turnout_L')) { addBeam(0, L/2, L); addCurveBeam(L, Math.PI, 3*Math.PI/4, L); }
+            else if (type.startsWith('turnout_R')) { addBeam(0, L/2, L); addCurveBeam(L, 0, -Math.PI/4, -L); }
+            else if (type.startsWith('y_point')) { addBeam(-1.25, L/2, L, -0.1); addBeam(1.25, L/2, L, 0.1); }
+            else if (type.startsWith('3way')) { addBeam(0, L/2, L); addCurveBeam(L, Math.PI, 3*Math.PI/4, L); addCurveBeam(L, 0, -Math.PI/4, -L); }
+            else if (type.startsWith('slope')) { addBeam(0, L, 2*L); }
 
-            // --- 複線系 ---
-            else if (type === 'double_straight') {
-                addBeam(0, L/2, L);
-                addBeam(-OFFSET, L/2, L);
-            }
-            // 【修正】複線曲線レール描画
+            else if (type === 'double_straight') { addBeam(0, L/2, L); addBeam(-OFFSET, L/2, L); }
+            
+            // 【完全修正】複線曲線レール描画
             else if (type === 'double_curve_left') {
-                // 中心 cx = L
-                addCurveBeam(L, Math.PI, 3*Math.PI/4, L);         // Track 0 (x=0) R=L
-                addCurveBeam(L+OFFSET, Math.PI, 3*Math.PI/4, L);  // Track 1 (x=-OFFSET) R=L+OFFSET
+                addCurveBeam(L, Math.PI, 3*Math.PI/4, L);         
+                addCurveBeam(L+OFFSET, Math.PI, 3*Math.PI/4, L);  
             }
             else if (type === 'double_curve_right') {
-                // 中心 cx = -(L+OFFSET)
-                addCurveBeam(L+OFFSET, 0, -Math.PI/4, -(L+OFFSET)); // Track 0 (x=0) R=L+OFFSET
-                addCurveBeam(L, 0, -Math.PI/4, -(L+OFFSET));        // Track 1 (x=-OFFSET) R=L
+                addCurveBeam(L+OFFSET, 0, -Math.PI/4, -(L+OFFSET)); 
+                addCurveBeam(L, 0, -Math.PI/4, -(L+OFFSET));        
             }
             
-            // 【修正】複線ターンアウトレール描画（対称構造）
+            // 【完全修正】複線ターンアウト描画（左右対称にすき間なく描画）
             else if (type.startsWith('double_turnout_L')) {
-                addBeam(0, L/2, L);             // 直進1
-                addBeam(-OFFSET, L/2, L);       // 直進2
-                addBeam(L/2, L, L, Math.PI/2);          // 分岐1 (Z=L の位置からX方向へ)
-                addBeam(L/2, L+OFFSET, L, Math.PI/2);   // 分岐2 (Z=L+OFFSET の位置からX方向へ)
+                addBeam(0, L/2, L);                                       // 直進(内輪)
+                addBeam(-OFFSET, (L+OFFSET)/2, L+OFFSET);                 // 直進(外輪) は奥まで伸ばす
+                addBeam(L/2, L, L, Math.PI/2);                            // 分岐(内輪) X方向へ
+                addBeam((L-OFFSET)/2, L+OFFSET, L+OFFSET, Math.PI/2);     // 分岐(外輪) X方向へ
             }
             else if (type.startsWith('double_turnout_R')) {
-                addBeam(0, L/2, L);             // 直進1
-                addBeam(-OFFSET, L/2, L);       // 直進2
-                addBeam(-L/2, L, L, Math.PI/2);         // 分岐1 (Z=L の位置から-X方向へ)
-                addBeam(-L/2, L+OFFSET, L, Math.PI/2);  // 分岐2 (Z=L+OFFSET の位置から-X方向へ)
+                addBeam(0, (L+OFFSET)/2, L+OFFSET);                       // 直進(外輪) は奥まで伸ばす
+                addBeam(-OFFSET, L/2, L);                                 // 直進(内輪)
+                addBeam(-L/2, L+OFFSET, L, Math.PI/2);                    // 分岐(外輪) -X方向へ
+                addBeam(-(L+OFFSET)/2, L, L+OFFSET, Math.PI/2);           // 分岐(内輪) -X方向へ
             }
 
-            else if (type.startsWith('double_point_L')) {
-                addBeam(0, L/2, L);
-                addBeam(OFFSET, L/2, L);
-                addBeam(OFFSET/2, L/2, L*0.6, 0.4);
-            }
-            else if (type.startsWith('double_point_R')) {
-                addBeam(0, L/2, L);
-                addBeam(-OFFSET, L/2, L);
-                addBeam(-OFFSET/2, L/2, L*0.6, -0.4);
-            }
-            else if (type === 'double_crossover_L') {
-                addBeam(0, L/2, L);
-                addBeam(-OFFSET, L/2, L);
-                addBeam(-OFFSET/2, L/2, L*0.8, 0.5);
-            }
-            else if (type === 'double_crossover_R') {
-                addBeam(0, L/2, L);
-                addBeam(-OFFSET, L/2, L);
-                addBeam(-OFFSET/2, L/2, L*0.8, -0.5);
-            }
+            else if (type.startsWith('double_point_L')) { addBeam(0, L/2, L); addBeam(OFFSET, L/2, L); addBeam(OFFSET/2, L/2, L*0.6, 0.4); }
+            else if (type.startsWith('double_point_R')) { addBeam(0, L/2, L); addBeam(-OFFSET, L/2, L); addBeam(-OFFSET/2, L/2, L*0.6, -0.4); }
+            else if (type === 'double_crossover_L') { addBeam(0, L/2, L); addBeam(-OFFSET, L/2, L); addBeam(-OFFSET/2, L/2, L*0.8, 0.5); }
+            else if (type === 'double_crossover_R') { addBeam(0, L/2, L); addBeam(-OFFSET, L/2, L); addBeam(-OFFSET/2, L/2, L*0.8, -0.5); }
 
             return group;
         }
 
-        // ====== データの保存と読み込み ======
+        // --- セーブ＆ロード ---
         window.saveToBrowser = () => { 
             localStorage.setItem('railSimLayout', JSON.stringify(rails.map(r => ({ 
                 t: r.userData.type, 
