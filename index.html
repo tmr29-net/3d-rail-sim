@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>3D Rail Sim - Final Perfection</title>
+    <title>3D Rail Sim</title>
     <style>
         body {
             margin: 0;
@@ -12,6 +13,7 @@
             touch-action: none;
             background: #1a1a1a;
         }
+
         #ui {
             position: absolute;
             top: 10px;
@@ -25,13 +27,16 @@
             overflow-y: auto;
             padding-right: 5px;
         }
+
         #ui::-webkit-scrollbar {
             width: 6px;
         }
+
         #ui::-webkit-scrollbar-thumb {
             background: #555;
             border-radius: 3px;
         }
+
         button {
             padding: 8px;
             font-size: 11px;
@@ -45,9 +50,11 @@
             transition: opacity 0.2s;
             box-sizing: border-box;
         }
+
         button:active {
             opacity: 0.7;
         }
+
         .inst {
             position: absolute;
             bottom: 10px;
@@ -60,6 +67,7 @@
             border-radius: 4px;
             line-height: 1.4;
         }
+
         #status {
             color: #ff5252;
             font-weight: bold;
@@ -69,21 +77,25 @@
             font-size: 12px;
             width: 100%;
         }
+
         .flex-row {
             display: flex;
             gap: 5px;
             width: 100%;
         }
+
         .flex-row button {
             flex: 1;
             padding: 8px 2px;
         }
+
         .divider {
             width: 100%;
             height: 1px;
             background: #444;
             margin: 3px 0;
         }
+
         .category-label {
             color: #ccc;
             font-size: 11px;
@@ -93,6 +105,7 @@
         }
     </style>
 </head>
+
 <body>
     <div id="ui">
         <div class="category-label">▼ 基本レール群</div>
@@ -465,6 +478,8 @@
 
             const H_Q = H_UNIT / 4;
 
+
+            //ジョイント位置の定義
             if (type === 'straight') {
                 addJoint(0, ...p0, 'F');
                 addJoint(1, ...pS, 'M');
@@ -550,22 +565,22 @@
             } else if (type === '3way_A') {
                 addJoint(0, ...p0, 'F');
                 addJoint(1, ...pS, 'M');
-                addJoint(2, ...pCL, 'M');
+                addJoint(2, ...pCL, 'F');
                 addJoint(3, ...pCR, 'M');
             } else if (type === '3way_B') {
                 addJoint(0, ...p0, 'M');
                 addJoint(1, ...pS, 'F');
-                addJoint(2, ...pCL, 'F');
+                addJoint(2, ...pCL, 'M');
                 addJoint(3, ...pCR, 'F');
             } else if (type === '3way_A_flip') {
-                addJoint(0, ...p0, 'M');
+                addJoint(0, ...p0, 'F');
                 addJoint(1, ...pS, 'M');
-                addJoint(2, ...pCL, 'F');
+                addJoint(2, ...pCL, 'M');
                 addJoint(3, ...pCR, 'F');
             } else if (type === '3way_B_flip') {
-                addJoint(0, ...p0, 'F');
+                addJoint(0, ...p0, 'M');
                 addJoint(1, ...pS, 'F');
-                addJoint(2, ...pCL, 'M');
+                addJoint(2, ...pCL, 'F');
                 addJoint(3, ...pCR, 'M');
             } else if (type === 'double_straight') {
                 addJoint(0, ...p0, 'F');
@@ -616,10 +631,10 @@
                 addJoint(2, ...pS, 'M');
                 addJoint(3, -OFFSET, 0, L, 0, 0, 1, 'M');
             } else if (type === 'double_crossover_R') {
-                addJoint(0, ...p0, 'M');
-                addJoint(1, -OFFSET, 0, 0, 0, 0, -1, 'M');
-                addJoint(2, ...pS, 'F');
-                addJoint(3, -OFFSET, 0, L, 0, 0, 1, 'F');
+                addJoint(0, ...p0, 'F');
+                addJoint(1, -OFFSET, 0, 0, 0, 0, -1, 'F');
+                addJoint(2, ...pS, 'M');
+                addJoint(3, -OFFSET, 0, L, 0, 0, 1, 'M');
             } else if (type === 'fig8_F_RM') {
                 addJoint(0, ...p0, 'F');
                 addJoint(1, ...pCR, 'M');
@@ -746,6 +761,7 @@
 
             const addEdges = (mesh, geo) => mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo, 15), edgeMatNormal));
 
+            //レールの描画
             if (type === 'slope_up' || type === 'slope_down' || type === 'slope_up_flip' || type === 'slope_down_flip') {
                 const len = 2 * L;
                 geometry = new THREE.BoxGeometry(W, 0.4, len, 1, 1, 32);
@@ -1117,8 +1133,12 @@
                 if (isLeft) {
                     sGeo.translate(-OFFSET, 0, 0);
                 } else {
-                    sGeo.rotateY(Math.PI);
-                    sGeo.translate(0, 0, L);
+                    // ★一旦中央へ（超重要）
+                    sGeo.translate(-OFFSET, 0, 0);
+                    sGeo.scale(-1, 1, 1);
+                    sGeo.translate(-OFFSET, 0, 0);
+
+                    sGeo.computeVertexNormals();
                 }
 
                 const sMesh = new THREE.Mesh(sGeo, mat);
@@ -1168,6 +1188,8 @@
 
             const H_Q = H_UNIT / 4;
 
+
+            //ジョイントの描画
             if (type === 'straight') addPeg(...pS);
             else if (type === 'double_length_straight') addPeg(0, 0, 2 * L, 0, 0, 1);
             else if (type === 'half_straight') addPeg(0, 0, L / 2, 0, 0, 1);
@@ -1194,10 +1216,10 @@
             else if (type === 'turnout_R_out') { addPeg(...pS); addPeg(...pCR); }
             else if (type === 'turnout_L_in') { addPeg(...p0); }
             else if (type === 'turnout_R_in') { addPeg(...p0); }
-            else if (type === '3way_A') { addPeg(...pS); addPeg(...pCL); addPeg(...pCR); }
-            else if (type === '3way_B') { addPeg(...p0); }
-            else if (type === '3way_A_flip') { addPeg(...p0); addPeg(...pS); }
-            else if (type === '3way_B_flip') { addPeg(...pS); addPeg(...pCL); }
+            else if (type === '3way_A') { addPeg(...pS); addPeg(...pCR); }
+            else if (type === '3way_B') { addPeg(...p0); addPeg(...pCL); }
+            else if (type === '3way_A_flip') { addPeg(...pS); addPeg(...pCL); }
+            else if (type === '3way_B_flip') { addPeg(...p0); addPeg(...pCR); }
             else if (type === 'double_straight' || type.startsWith('double_crossover_')) {
                 addPeg(...pS);
                 addPeg(-OFFSET, 0, L, 0, 0, 1);
@@ -1285,6 +1307,7 @@
             const t = selectedObject.userData.type;
             if (isConnected(selectedObject)) return showMessage("接続中は変更できません。");
 
+            //レール裏返し
             const map = {
                 'curve_right': 'curve_left', 'curve_left': 'curve_right',
                 'double_length_curve_right': 'double_length_curve_left', 'double_length_curve_left': 'double_length_curve_right',
@@ -1302,6 +1325,7 @@
                 'double_crossover_L': 'double_crossover_R', 'double_crossover_R': 'double_crossover_L',
                 'double_turnout_L': 'double_turnout_R', 'double_turnout_R': 'double_turnout_L',
                 'double_turnout_L_flip': 'double_turnout_R_flip', 'double_turnout_R_flip': 'double_turnout_L_flip',
+                '3way_A': '3way_A_flip', '3way_A_flip': '3way_A', '3way_B': '3way_B_flip', '3way_B_flip': '3way_B',
                 'fig8_F_RM': 'fig8_F_LM', 'fig8_F_LM': 'fig8_F_RM',
                 'fig8_M_RM': 'fig8_M_LM', 'fig8_M_LM': 'fig8_M_RM',
                 'y_point_F_RM': 'y_point_F_LM', 'y_point_F_LM': 'y_point_F_RM',
@@ -1315,6 +1339,7 @@
             const t = selectedObject.userData.type;
             if (isConnected(selectedObject)) return showMessage("接続中は変更できません。");
 
+            //ジョイント変更
             const map = {
                 'quarter_straight': 'quarter_straight_MM', 'quarter_straight_MM': 'quarter_straight_FF', 'quarter_straight_FF': 'quarter_straight',
                 's_curve_L': 's_curve_L_flip', 's_curve_L_flip': 's_curve_L',
@@ -1327,7 +1352,7 @@
                 'double_point_R_out': 'double_point_R_in', 'double_point_R_in': 'double_point_R_out',
                 'double_turnout_L': 'double_turnout_L_flip', 'double_turnout_L_flip': 'double_turnout_L',
                 'double_turnout_R': 'double_turnout_R_flip', 'double_turnout_R_flip': 'double_turnout_R',
-                '3way_A': '3way_A_flip', '3way_A_flip': '3way_B', '3way_B': '3way_B_flip', '3way_B_flip': '3way_A',
+                '3way_A': '3way_B', '3way_B': '3way_A', '3way_A_flip': '3way_B_flip', '3way_B_flip': '3way_A_flip',
                 'fig8_F_RM': 'fig8_M_RM', 'fig8_M_RM': 'fig8_F_RM',
                 'fig8_F_LM': 'fig8_M_LM', 'fig8_M_LM': 'fig8_F_LM',
                 'y_point_F_RM': 'y_point_M_RM', 'y_point_M_RM': 'y_point_F_RM',
@@ -1406,4 +1431,5 @@
         }
     </script>
 </body>
+
 </html>
